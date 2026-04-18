@@ -1,3 +1,4 @@
+import traceback
 from fastapi import APIRouter, HTTPException
 from models.case import (
     ResearchRequest,
@@ -17,6 +18,7 @@ async def research(req: ResearchRequest):
         result = await ai_service.research(req.topic, req.case_id)
         return {"success": True, "result": result}
     except Exception as e:
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"AI error: {str(e)}")
 
 
@@ -28,6 +30,7 @@ async def generate_document(req: GenerateDocumentRequest):
         )
         return {"success": True, "result": result}
     except Exception as e:
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"AI error: {str(e)}")
 
 
@@ -37,6 +40,7 @@ async def summarize(req: SummarizeRequest):
         result = await ai_service.summarize_document(req.case_id, req.document_id)
         return {"success": True, "result": result}
     except Exception as e:
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"AI error: {str(e)}")
 
 
@@ -46,6 +50,7 @@ async def chat(req: ChatRequest):
         result = await ai_service.chat(req.case_id, req.message, req.history)
         return {"success": True, "result": result}
     except Exception as e:
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"AI error: {str(e)}")
 
 
@@ -55,4 +60,5 @@ async def prepare_case(req: PrepareCaseRequest):
         result = await ai_service.prepare_case(req.case_id)
         return {"success": True, "result": result}
     except Exception as e:
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"AI error: {str(e)}")

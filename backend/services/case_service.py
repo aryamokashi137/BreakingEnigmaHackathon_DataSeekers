@@ -16,11 +16,11 @@ async def create_case(data: dict) -> dict:
     db = get_db()
     now = datetime.utcnow()
     case_doc = {
-        "title": data["title"],
-        "client_name": data["client_name"],
+        "title": data["title"].strip(),
+        "client_name": data["client_name"].strip(),
         "case_type": data.get("case_type", "General"),
         "status": data.get("status", "Active"),
-        "description": data.get("description", ""),
+        "description": data.get("description", "").strip(),
         "created_at": now,
         "updated_at": now,
         "notes": [],
@@ -35,7 +35,7 @@ async def create_case(data: dict) -> dict:
 async def get_all_cases() -> list:
     db = get_db()
     cursor = db.cases.find({}).sort("created_at", -1)
-    cases = await cursor.to_list(length=100)
+    cases = await cursor.to_list(length=None)  # None = no limit
     return [_serialize_case(c) for c in cases]
 
 

@@ -1,4 +1,5 @@
 import os
+import httpx
 from openai import OpenAI
 from PyPDF2 import PdfReader
 from config import settings

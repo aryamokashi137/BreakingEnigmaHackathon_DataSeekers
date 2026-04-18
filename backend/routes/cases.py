@@ -1,5 +1,6 @@
 import os
 import shutil
+from pathlib import Path
 from uuid import uuid4
 from fastapi import APIRouter, HTTPException, UploadFile, File
 from fastapi.responses import FileResponse
@@ -8,12 +9,17 @@ from services import case_service
 
 router = APIRouter(prefix="/api/cases", tags=["Cases"])
 
-UPLOAD_DIR = "uploads"
-os.makedirs(UPLOAD_DIR, exist_ok=True)
+# Absolute path — works regardless of where uvicorn is launched from
+UPLOAD_DIR = Path(__file__).parent.parent / "uploads"
+UPLOAD_DIR.mkdir(exist_ok=True)
 
 
-@router.post("")
+@router.post("", status_code=201)
 async def create_case(case: CaseCreate):
+    if not case.title.strip():
+        raise HTTPException(status_code=422, detail="Case title cannot be empty")
+    if not case.client_name.strip():
+        raise HTTPException(status_code=422, detail="Client name cannot be empty")
     result = await case_service.create_case(case.model_dump())
     return {"success": True, "case": result}
 
@@ -71,7 +77,7 @@ async def upload_document(case_id: str, file: UploadFile = File(...)):
     # Save file with unique name
     ext = os.path.splitext(file.filename)[1]
     unique_name = f"{uuid4()}{ext}"
-    filepath = os.path.join(UPLOAD_DIR, unique_name)
+    filepath = UPLOAD_DIR / unique_name
 
     with open(filepath, "wb") as f:
         shutil.copyfileobj(file.file, f)
@@ -82,21 +88,23 @@ async def upload_document(case_id: str, file: UploadFile = File(...)):
 
 @router.get("/{case_id}/files/{filename}")
 async def get_file(case_id: str, filename: str):
-    filepath = os.path.join(UPLOAD_DIR, filename)
-    if not os.path.exists(filepath):
+    # Prevent path traversal attacks
+    filepath = (UPLOAD_DIR / filename).resolve()
+    if not str(filepath).startswith(str(UPLOAD_DIR.resolve())):
+        raise HTTPException(status_code=400, detail="Invalid filename")
+    if not filepath.exists():
         raise HTTPException(status_code=404, detail="File not found")
-    return FileResponse(filepath, media_type="application/pdf")
+    return FileResponse(str(filepath), media_type="application/pdf")
 
 
 @router.delete("/{case_id}/files/{document_id}")
 async def delete_document_route(case_id: str, document_id: str):
-    # Retrieve doc info to physically delete file if possible
     doc_info = await case_service.get_document_info(case_id, document_id)
     if doc_info:
-        filepath = os.path.join(UPLOAD_DIR, doc_info["filename"])
-        if os.path.exists(filepath):
+        filepath = (UPLOAD_DIR / doc_info["filename"]).resolve()
+        if filepath.exists():
             try:
-                os.remove(filepath)
+                filepath.unlink()
             except Exception:
                 pass
 
