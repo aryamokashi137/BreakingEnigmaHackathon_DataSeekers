@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+pymongo
+python-multipart
+python-dotenv
+anthropic
+pymupdf
+faiss-cpu
+sentence-transformers
+python-docx
