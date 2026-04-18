@@ -1,50 +1,79 @@
-from contextlib import asynccontextmanager
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from database import connect_db, close_db
-from routes import cases, ai
 import os
+import shutil
+from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Form, APIRouter
+from sqlalchemy.orm import Session
+from database import engine, Base, get_db
+from models import Case, Document
+from schemas import CaseCreate, CaseResponse, ResearchQuery, ResearchResponse
+from rag import rag_service
 
+# Create tables
+Base.metadata.create_all(bind=engine)
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    await connect_db()
-    yield
-    await close_db()
+# Create uploads directory if it doesn't exist
+os.makedirs("uploads", exist_ok=True)
 
+app = FastAPI(title="Legal AI Backend (Full Reset)")
 
-app = FastAPI(
-    title="Legal Workflow Assistant",
-    description="AI-powered assistant for lawyers — case management, research, drafting, and more.",
-    version="1.0.0",
-    lifespan=lifespan,
-)
+# Use a router with /api prefix
+router = APIRouter(prefix="/api")
 
-# CORS — allow frontend
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+@router.post("/cases", response_model=CaseResponse)
+def create_case(case_data: CaseCreate, db: Session = Depends(get_db)):
+    try:
+        new_case = Case(
+            title=case_data.title,
+            client_name=case_data.client_name,
+            fir_number=case_data.fir_number,
+            case_type=case_data.case_type,
+            description=case_data.description
+        )
+        db.add(new_case)
+        db.commit()
+        db.refresh(new_case)
+        print(f"Case created successfully with ID: {new_case.id}")
+        return new_case
+    except Exception as e:
+        print(f"Error creating case: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
-# Register routes
-app.include_router(cases.router)
-app.include_router(ai.router)
+@router.post("/upload")
+def upload_document(
+    case_id: int = Form(...),
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db)
+):
+    try:
+        # Save file to disk
+        file_path = os.path.join("uploads", file.filename)
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        
+        # Save metadata to DB
+        new_doc = Document(case_id=case_id, filename=file.filename)
+        db.add(new_doc)
+        db.commit()
+        
+        # Process PDF and store in FAISS
+        rag_service.process_pdf(file_path, case_id, file.filename)
+        
+        print(f"Document {file.filename} uploaded and processed for case {case_id}")
+        return {"message": "Document uploaded and processed successfully", "filename": file.filename}
+    except Exception as e:
+        print(f"Error uploading document: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
-# Serve frontend static files
-frontend_path = os.path.join(os.path.dirname(__file__), "..", "frontend")
-if os.path.exists(frontend_path):
-    app.mount("/static", StaticFiles(directory=frontend_path, html=True), name="frontend")
+@router.post("/research", response_model=ResearchResponse)
+def research(query_data: ResearchQuery):
+    try:
+        print(f"Processing research query: {query_data.query}")
+        result = rag_service.query(query_data.query)
+        return ResearchResponse(
+            answer=result["answer"],
+            context_used=result["context_used"]
+        )
+    except Exception as e:
+        print(f"Error in research: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
-
-@app.get("/")
-async def root():
-    return {"message": "Legal Workflow Assistant API", "docs": "/docs"}
-
-
-@app.get("/health")
-async def health():
-    return {"status": "healthy"}
+app.include_router(router)

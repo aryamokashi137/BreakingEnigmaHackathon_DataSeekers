@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-from models.case import (
+from schemas.ai import (
     ResearchRequest,
     GenerateDocumentRequest,
     SummarizeRequest,
@@ -54,5 +54,15 @@ async def prepare_case(req: PrepareCaseRequest):
     try:
         result = await ai_service.prepare_case(req.case_id)
         return {"success": True, "result": result}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"AI error: {str(e)}")
+
+@router.post("/analyze-case")
+async def analyze_case(req: PrepareCaseRequest):
+    # This specifically calls the holistic analysis
+    try:
+        from services.rag_service import rag_service
+        result = rag_service.analyze_case_holistically(req.case_id)
+        return {"success": True, "result": result["answer"]}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"AI error: {str(e)}")

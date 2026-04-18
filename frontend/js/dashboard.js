@@ -3,22 +3,25 @@ const API = "http://localhost:8000/api";
 // --- Load Cases ---
 async function loadCases() {
     try {
-        const res = await fetch(`${API}/cases`);
+        const res = await fetch(`${API}/cases/`);
         const data = await res.json();
-        const cases = data.cases || [];
+        const cases = data || [];
         const list = document.getElementById("cases-list");
         const empty = document.getElementById("empty-state");
         const count = document.getElementById("case-count");
+        const emptyState = document.getElementById('empty-state');
 
         if (cases.length === 0) {
-            list.innerHTML = "";
-            list.appendChild(empty);
-            empty.style.display = "block";
+            if (emptyState) {
+                list.innerHTML = "";
+                list.appendChild(empty);
+                emptyState.style.display = "block";
+            }
             count.textContent = "0 cases";
             return;
         }
 
-        empty.style.display = "none";
+        if (emptyState) emptyState.style.display = "none";
         count.textContent = `${cases.length} case${cases.length !== 1 ? "s" : ""}`;
 
         list.innerHTML = cases
@@ -33,7 +36,7 @@ async function loadCases() {
                     ? new Date(c.created_at).toLocaleDateString()
                     : "";
                 return `
-                <div class="card case-card" onclick="openCase('${c._id}')">
+                <div class="card case-card" onclick="openCase('${c.id}')">
                     <div class="case-header">
                         <div>
                             <h3>${escHtml(c.title)}</h3>
@@ -76,7 +79,7 @@ async function createCase(e) {
     };
 
     try {
-        const res = await fetch(`${API}/cases`, {
+        const res = await fetch(`${API}/cases/`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(body),

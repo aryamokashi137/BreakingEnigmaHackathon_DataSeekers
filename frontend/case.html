@@ -26,9 +26,12 @@
 
     <div class="container">
         <!-- CASE TITLE -->
-        <div class="page-title">
-            <h1 id="case-title">Loading...</h1>
-            <p id="case-subtitle"></p>
+        <div class="page-title" style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h1 id="case-title">Loading...</h1>
+                <p id="case-subtitle"></p>
+            </div>
+            <button class="btn btn-secondary" style="background-color: #ef4444; color: white; border: none;" onclick="deleteCase()">🗑️ Delete Case</button>
         </div>
 
         <!-- TABS -->
@@ -123,6 +126,13 @@
                     <h4>📋 Prepare Case</h4>
                     <p>AI analyzes your case and generates a strategy brief</p>
                     <button class="btn btn-primary btn-sm" style="margin-top:10px; width:100%;" onclick="prepareCase()">Prepare Full Brief</button>
+                </div>
+
+                <!-- WHOLE CASE ANALYSIS -->
+                <div class="ai-tool-card" style="border: 2px solid var(--primary);">
+                    <h4>🧬 Whole Case Analysis</h4>
+                    <p>Deep synthesis across ALL uploaded documents and files</p>
+                    <button class="btn btn-primary btn-sm" style="margin-top:10px; width:100%;" onclick="analyzeWholeCase()">Analyze Everything</button>
                 </div>
 
             </div>

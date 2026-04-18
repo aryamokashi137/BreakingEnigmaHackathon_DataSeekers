@@ -1,26 +1,19 @@
-from motor.motor_asyncio import AsyncIOMotorClient
-from config import settings
+from sqlalchemy import create_engine
+from sqlalchemy.orm import declarative_base, sessionmaker
 
+SQLALCHEMY_DATABASE_URL = "sqlite:///./legal_db.sqlite"
 
-class Database:
-    client: AsyncIOMotorClient = None
-    db = None
+engine = create_engine(
+    SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
+)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+Base = declarative_base()
 
-database = Database()
-
-
-async def connect_db():
-    database.client = AsyncIOMotorClient(settings.MONGODB_URI)
-    database.db = database.client[settings.DATABASE_NAME]
-    print(f"Connected to MongoDB: {settings.DATABASE_NAME}")
-
-
-async def close_db():
-    if database.client:
-        database.client.close()
-        print("MongoDB connection closed")
-
-
+# Dependency
 def get_db():
-    return database.db
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()

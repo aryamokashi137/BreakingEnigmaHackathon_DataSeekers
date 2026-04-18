@@ -37,7 +37,7 @@ async function loadCase() {
     try {
         const res = await fetch(`${API}/cases/${CASE_ID}`);
         const data = await res.json();
-        currentCase = data.case;
+        currentCase = data;
         renderOverview();
         renderNotes();
         renderDocs();
@@ -277,7 +277,7 @@ async function doResearch() {
         const res = await fetch(`${API}/ai/research`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ topic, case_id: CASE_ID }),
+            body: JSON.stringify({ topic, case_id: parseInt(CASE_ID) }),
         });
         const data = await res.json();
         showAIResult(data.result || data.detail || "No result");
@@ -297,7 +297,7 @@ async function generateDoc() {
         const res = await fetch(`${API}/ai/generate-document`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ document_type, details, case_id: CASE_ID }),
+            body: JSON.stringify({ document_type, details, case_id: parseInt(CASE_ID) }),
         });
         const data = await res.json();
         showAIResult(data.result || data.detail || "No result");
@@ -319,9 +319,10 @@ async function summarizeDoc(documentId) {
         const res = await fetch(`${API}/ai/summarize`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ case_id: CASE_ID, document_id: documentId }),
+            body: JSON.stringify({ case_id: parseInt(CASE_ID), document_id: parseInt(documentId) }),
         });
         const data = await res.json();
+
         showAIResult(data.result || data.detail || "No result");
     } catch (err) {
         showAIResult("Error: " + err.message);
@@ -335,7 +336,23 @@ async function prepareCase() {
         const res = await fetch(`${API}/ai/prepare-case`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ case_id: CASE_ID }),
+            body: JSON.stringify({ case_id: parseInt(CASE_ID) }),
+        });
+        const data = await res.json();
+        showAIResult(data.result || data.detail || "No result");
+    } catch (err) {
+        showAIResult("Error: " + err.message);
+    }
+}
+
+// --- Whole Case Analysis ---
+async function analyzeWholeCase() {
+    showAILoading("Running deep synthesis across all case documents... This analyzes every file uploaded.");
+    try {
+        const res = await fetch(`${API}/ai/analyze-case`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ case_id: parseInt(CASE_ID) }),
         });
         const data = await res.json();
         showAIResult(data.result || data.detail || "No result");
@@ -364,7 +381,7 @@ async function sendChat() {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                case_id: CASE_ID,
+                case_id: parseInt(CASE_ID),
                 message,
                 history: chatHistory,
             }),
@@ -416,4 +433,26 @@ function esc(str) {
     const div = document.createElement("div");
     div.textContent = str || "";
     return div.innerHTML;
+}
+
+// ============================================================
+//  CASE DELETION
+// ============================================================
+async function deleteCase() {
+    if (!confirm("Are you sure you want to delete this ENTIRE case? This will delete all notes, deadlines, documents, and AI memory for this case. This cannot be undone.")) return;
+
+    try {
+        const res = await fetch(`${API}/cases/${CASE_ID}`, {
+            method: "DELETE",
+        });
+        if (res.ok) {
+            alert("Case deleted successfully.");
+            window.location.href = "index.html";
+        } else {
+            const err = await res.json();
+            alert(err.detail || "Delete failed");
+        }
+    } catch (err) {
+        alert("Error deleting case: " + err.message);
+    }
 }
