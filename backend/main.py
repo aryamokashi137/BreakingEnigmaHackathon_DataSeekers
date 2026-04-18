@@ -171,6 +171,12 @@ def get_chat_history(case_id: str):
     return [str_id(m) for m in msgs]
 
 
+@app.delete("/chat/{case_id}")
+def clear_chat(case_id: str):
+    chats_collection.delete_many({"case_id": case_id})
+    return {"message": "Chat cleared"}
+
+
 # ── Summarize specific document ────────────────────────────────────────────────
 
 @app.post("/summarize/{case_id}/{doc_name}")

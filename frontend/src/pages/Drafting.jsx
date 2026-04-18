@@ -1,29 +1,20 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { ArrowLeft, Zap, Copy, Download, Check, Loader2, Scale, FileText } from "lucide-react";
 import { getDraftTypes, generateDraft } from "../api";
 
-const FIELD_LABELS = {
-  deponent_name: "Deponent Name",
-  age: "Age",
-  address: "Address",
-  statement: "Statement / Facts",
-  date: "Date",
-  location: "Location / City",
-  applicant_name: "Applicant Name",
-  case_number: "Case Number",
-  court_name: "Court Name",
-  charges: "Charges / Offence",
-  grounds: "Grounds for Bail",
-  sender_name: "Sender Name",
-  sender_address: "Sender Address",
-  recipient_name: "Recipient Name",
-  recipient_address: "Recipient Address",
-  subject: "Subject",
-  facts: "Facts of the Matter",
-  demand: "Demand / Relief Sought",
-};
+const Spinner = () => <Loader2 size={14} style={{ animation: "spin 1s linear infinite" }} />;
 
-const MULTILINE_FIELDS = new Set(["statement", "grounds", "facts", "charges", "demand"]);
+const FIELD_LABELS = {
+  deponent_name: "Deponent Name", age: "Age", address: "Address",
+  statement: "Statement / Facts", date: "Date", location: "Location / City",
+  applicant_name: "Applicant Name", case_number: "Case Number", court_name: "Court Name",
+  charges: "Charges / Offence", grounds: "Grounds for Bail",
+  sender_name: "Sender Name", sender_address: "Sender Address",
+  recipient_name: "Recipient Name", recipient_address: "Recipient Address",
+  subject: "Subject", facts: "Facts of the Matter", demand: "Demand / Relief Sought",
+};
+const MULTILINE = new Set(["statement", "grounds", "facts", "charges", "demand", "address", "sender_address", "recipient_address"]);
 
 export default function Drafting() {
   const navigate = useNavigate();
@@ -43,148 +34,142 @@ export default function Drafting() {
     });
   }, []);
 
-  const initForm = (allTypes, type) => {
-    const fields = allTypes[type]?.fields || [];
-    setFormData(Object.fromEntries(fields.map((f) => [f, ""])));
+  const initForm = (all, type) => {
+    setFormData(Object.fromEntries((all[type]?.fields || []).map((f) => [f, ""])));
     setDraft("");
   };
 
-  const handleTypeChange = (e) => {
-    const t = e.target.value;
-    setSelectedType(t);
-    initForm(types, t);
-  };
+  const handleTypeChange = (type) => { setSelectedType(type); initForm(types, type); };
 
   const handleGenerate = async () => {
     const empty = Object.entries(formData).find(([, v]) => !v.trim());
-    if (empty) {
-      alert(`Please fill in: ${FIELD_LABELS[empty[0]] || empty[0]}`);
-      return;
-    }
-    setLoading(true);
-    setDraft("");
-    try {
-      const res = await generateDraft(selectedType, formData);
-      setDraft(res.data.draft);
-    } catch {
-      setDraft("Failed to generate draft. Please try again.");
-    } finally {
-      setLoading(false);
-    }
+    if (empty) { alert(`Please fill in: ${FIELD_LABELS[empty[0]] || empty[0]}`); return; }
+    setLoading(true); setDraft("");
+    try { const res = await generateDraft(selectedType, formData); setDraft(res.data.draft); }
+    catch { setDraft("Failed to generate draft. Please try again."); }
+    finally { setLoading(false); }
   };
 
   const handleCopy = () => {
     navigator.clipboard.writeText(draft);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setCopied(true); setTimeout(() => setCopied(false), 2000);
   };
 
   const handleDownload = () => {
-    const blob = new Blob([draft], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${selectedType}_draft.txt`;
+    const a = Object.assign(document.createElement("a"), {
+      href: URL.createObjectURL(new Blob([draft], { type: "text/plain" })),
+      download: `${selectedType}_draft.txt`,
+    });
     a.click();
-    URL.revokeObjectURL(url);
   };
 
   return (
-    <div style={{ padding: 24, maxWidth: 1100, margin: "0 auto" }}>
-      <button onClick={() => navigate("/")} style={{ marginBottom: 16 }}>← Back</button>
-      <h2>✍️ AI Document Drafting</h2>
-      <p style={{ color: "#666", marginTop: 0 }}>Fill in the details and get a complete legal document instantly.</p>
+    <div style={{ minHeight: "100vh", background: "#F8FAFC" }}>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
-      <div style={{ display: "flex", gap: 24 }}>
+      <nav style={{
+        background: "#fff", borderBottom: "1px solid #E2E8F0", padding: "0 32px",
+        height: 56, display: "flex", alignItems: "center", gap: 16,
+        boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+      }}>
+        <Scale size={18} color="#4F46E5" />
+        <span style={{ fontWeight: 700, fontSize: 15 }}>LegalAI</span>
+        <span style={{ color: "#CBD5E1" }}>›</span>
+        <span style={{ color: "#64748B", fontSize: 14 }}>AI Document Drafting</span>
+        <button className="btn" onClick={() => navigate("/")} style={{ background: "#F1F5F9", color: "#475569", marginLeft: "auto" }}>
+          <ArrowLeft size={14} /> Back
+        </button>
+      </nav>
 
-        {/* Left — Form */}
-        <div style={{ width: 380, flexShrink: 0 }}>
-          <label style={{ fontWeight: "bold", display: "block", marginBottom: 6 }}>Document Type</label>
-          <select
-            value={selectedType}
-            onChange={handleTypeChange}
-            style={{ width: "100%", padding: 8, marginBottom: 16 }}
-          >
-            {Object.entries(types).map(([key, val]) => (
-              <option key={key} value={key}>{val.label}</option>
-            ))}
-          </select>
-
-          {Object.keys(formData).map((field) => (
-            <div key={field} style={{ marginBottom: 12 }}>
-              <label style={{ display: "block", fontSize: 13, marginBottom: 4, fontWeight: "500" }}>
-                {FIELD_LABELS[field] || field}
-              </label>
-              {MULTILINE_FIELDS.has(field) ? (
-                <textarea
-                  rows={4}
-                  style={{ width: "100%", padding: 8, boxSizing: "border-box", resize: "vertical" }}
-                  value={formData[field]}
-                  onChange={(e) => setFormData((p) => ({ ...p, [field]: e.target.value }))}
-                />
-              ) : (
-                <input
-                  style={{ width: "100%", padding: 8, boxSizing: "border-box" }}
-                  value={formData[field]}
-                  onChange={(e) => setFormData((p) => ({ ...p, [field]: e.target.value }))}
-                />
-              )}
-            </div>
-          ))}
-
-          <button
-            onClick={handleGenerate}
-            disabled={loading}
-            style={{
-              width: "100%",
-              padding: "10px 0",
-              background: loading ? "#ccc" : "#0070f3",
-              color: "#fff",
-              border: "none",
-              borderRadius: 4,
-              fontSize: 15,
-              cursor: loading ? "not-allowed" : "pointer",
-              marginTop: 4,
-            }}
-          >
-            {loading ? "Generating..." : "⚡ Generate Draft"}
-          </button>
+      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "32px 24px" }}>
+        <div style={{ marginBottom: 28 }}>
+          <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 4 }}>✍️ AI Document Drafting</h1>
+          <p style={{ color: "#64748B" }}>Fill in the details and get a complete, professionally formatted legal document instantly.</p>
         </div>
 
-        {/* Right — Output */}
-        <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-            <label style={{ fontWeight: "bold" }}>Generated Document</label>
-            {draft && (
-              <div style={{ display: "flex", gap: 8 }}>
-                <button onClick={handleCopy} style={{ fontSize: 12, padding: "4px 10px" }}>
-                  {copied ? "✅ Copied!" : "📋 Copy"}
-                </button>
-                <button onClick={handleDownload} style={{ fontSize: 12, padding: "4px 10px" }}>
-                  ⬇️ Download
-                </button>
+        <div style={{ display: "flex", gap: 24, alignItems: "flex-start" }}>
+          {/* Left — Form */}
+          <div style={{ width: 380, flexShrink: 0 }}>
+            {/* Type selector */}
+            <div style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 12, padding: 20, marginBottom: 16, boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
+              <label style={{ fontSize: 11, fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", marginBottom: 10 }}>
+                Document Type
+              </label>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {Object.entries(types).map(([key, val]) => (
+                  <button key={key} className="btn"
+                    onClick={() => handleTypeChange(key)}
+                    style={{
+                      justifyContent: "flex-start", padding: "10px 14px",
+                      background: selectedType === key ? "#EEF2FF" : "#F8FAFC",
+                      color: selectedType === key ? "#4F46E5" : "#374151",
+                      border: `1px solid ${selectedType === key ? "#C7D2FE" : "#E2E8F0"}`,
+                      fontWeight: selectedType === key ? 700 : 500,
+                    }}>
+                    <FileText size={14} /> {val.label}
+                  </button>
+                ))}
               </div>
-            )}
+            </div>
+
+            {/* Fields */}
+            <div style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 12, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
+              <label style={{ fontSize: 11, fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", marginBottom: 14 }}>
+                Document Details
+              </label>
+              {Object.keys(formData).map((field) => (
+                <div key={field} style={{ marginBottom: 14 }}>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: "#374151", display: "block", marginBottom: 5 }}>
+                    {FIELD_LABELS[field] || field}
+                  </label>
+                  {MULTILINE.has(field) ? (
+                    <textarea rows={3} value={formData[field]}
+                      onChange={(e) => setFormData((p) => ({ ...p, [field]: e.target.value }))}
+                      style={{ width: "100%", padding: "8px 12px", border: "1px solid #E2E8F0", borderRadius: 8, fontSize: 13, resize: "vertical", background: "#F8FAFC" }} />
+                  ) : (
+                    <input value={formData[field]}
+                      onChange={(e) => setFormData((p) => ({ ...p, [field]: e.target.value }))}
+                      style={{ width: "100%", padding: "8px 12px", border: "1px solid #E2E8F0", borderRadius: 8, fontSize: 13, background: "#F8FAFC" }} />
+                  )}
+                </div>
+              ))}
+              <button className="btn" onClick={handleGenerate} disabled={loading}
+                style={{ width: "100%", justifyContent: "center", padding: "12px", fontSize: 14,
+                  background: loading ? "#E2E8F0" : "#4F46E5", color: loading ? "#94A3B8" : "#fff", marginTop: 4 }}>
+                {loading ? <><Spinner /> Generating...</> : <><Zap size={15} /> Generate Draft</>}
+              </button>
+            </div>
           </div>
-          <textarea
-            readOnly={false}
-            value={loading ? "Generating your document..." : draft}
-            onChange={(e) => setDraft(e.target.value)}
-            placeholder="Your generated legal document will appear here..."
-            style={{
-              flex: 1,
-              minHeight: 520,
-              padding: 14,
-              fontFamily: "monospace",
-              fontSize: 13,
-              lineHeight: 1.6,
-              border: "1px solid #ddd",
-              borderRadius: 4,
-              resize: "none",
-              background: draft ? "#fff" : "#fafafa",
-              color: "#222",
-            }}
-          />
+
+          {/* Right — Output */}
+          <div style={{ flex: 1 }}>
+            <div style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 12, overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
+              <div style={{ padding: "14px 20px", borderBottom: "1px solid #E2E8F0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontWeight: 600, fontSize: 14 }}>Generated Document</span>
+                {draft && (
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button className="btn" onClick={handleCopy} style={{ background: "#F1F5F9", color: "#475569", padding: "6px 12px" }}>
+                      {copied ? <><Check size={13} /> Copied!</> : <><Copy size={13} /> Copy</>}
+                    </button>
+                    <button className="btn" onClick={handleDownload} style={{ background: "#F1F5F9", color: "#475569", padding: "6px 12px" }}>
+                      <Download size={13} /> Download
+                    </button>
+                  </div>
+                )}
+              </div>
+              <textarea
+                value={loading ? "⚡ Generating your document..." : draft}
+                onChange={(e) => setDraft(e.target.value)}
+                placeholder="Your generated legal document will appear here..."
+                style={{
+                  width: "100%", minHeight: 580, padding: 20,
+                  fontFamily: "'Courier New', monospace", fontSize: 13, lineHeight: 1.7,
+                  border: "none", resize: "none", background: draft ? "#fff" : "#FAFAFA",
+                  color: "#1E293B", outline: "none",
+                }}
+              />
+            </div>
+          </div>
         </div>
       </div>
     </div>

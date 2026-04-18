@@ -18,6 +18,7 @@ export const deleteDocument = (docId) => axios.delete(`${BASE}/documents/${docId
 export const getChatHistory = (caseId) => axios.get(`${BASE}/chat/${caseId}`);
 export const sendMessage = (caseId, message) =>
   axios.post(`${BASE}/chat`, { case_id: caseId, message });
+export const clearChat = (caseId) => axios.delete(`${BASE}/chat/${caseId}`);
 
 export const summarizeDocument = (caseId, docName) =>
   axios.post(`${BASE}/summarize/${caseId}/${encodeURIComponent(docName)}`);
