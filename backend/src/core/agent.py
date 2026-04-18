@@ -183,22 +183,66 @@ class LegalRagAgent:
     def set_llm(self, model_name: str) -> bool:
         """
         Update the language model used by the agent.
-        
-        Args:
-            model_name: Name of the new language model
-            
-        Returns:
-            bool: True if model was successfully updated, False otherwise
         """
         try:
             self.llm = get_llm_model(model_name, False, **self.llm_config)
             self.model_name = model_name
             self._rebuild_rag_pipeline()
+            self.chat_summarizer = ChatSummarizer(self.llm)
             logger.info(f"Language model updated to {model_name}")
             return True
         except Exception as e:
             logger.info(f"Failed to update language model: {str(e)}")
             return False
+
+    # 
+    # FLOWCHART FEATURES INTEGRATION
+    #
+
+    def get_welcome_response(self) -> str:
+        """Node 1: Welcome Screen AI Introduction"""
+        return (
+            "Welcome to your AI Legal Workflow Assistant. "
+            "I am initialized with the latest Canadian Case Law and your specific case files. "
+            "How can I assist your practice today? You can add a new FIR, summarize a scanned "
+            "document, or start drafting a legal notice."
+        )
+
+    def generate_legal_draft(self, draft_type: str, details: str) -> str:
+        """Node 4: Editable Draft Production"""
+        prompt = (
+            f"As a professional legal assistant, create a formal {draft_type} "
+            f"using the following case details: {details}. "
+            "Use formal legal language, placeholders for dates/signatures, and include "
+            "relevant legal citations if applicable from our RAG context."
+        )
+        result = self.execute_actions(prompt)
+        return result.assistant_response
+
+    def refine_legal_draft(self, current_draft: str, edits: str) -> str:
+        """Node 4: Edit Details (Refinement)"""
+        prompt = (
+            f"Update the following legal draft based on these specific edits: {edits}. "
+            f"\n\nCurrent Draft: {current_draft}"
+        )
+        result = self.execute_actions(prompt)
+        return result.assistant_response
+
+    def get_highlighted_sources(self, question: str) -> List[Dict[str, Any]]:
+        """Node 3: Scanned Case Study Highlighting metadata"""
+        if not self.database_manager.case_vector_store_manager:
+            return []
+        
+        # Retrieval only to get snippets for highlighting in the UI
+        results = self.database_manager.query_documents(question, k=3)
+        sources = []
+        for doc, score in results:
+            sources.append({
+                "content": doc.page_content,
+                "metadata": doc.metadata,
+                "relevance": float(score)
+            })
+        return sources
 
     def _get_object_handler(self, search_type, query):
         """

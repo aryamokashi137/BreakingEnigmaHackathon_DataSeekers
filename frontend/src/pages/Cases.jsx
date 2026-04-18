@@ -170,14 +170,37 @@ const Cases = () => {
             <p className="subtext mb-1">Initialize a new RAG session for your legal documents.</p>
             <form onSubmit={handleCreateCase}>
               <div className="form-group">
-                <label>Case Name</label>
+                <label>Case / Client Name</label>
                 <input 
                   type="text" 
                   value={newCaseData.name} 
                   onChange={e => setNewCaseData({...newCaseData, name: e.target.value})} 
-                  placeholder="e.g., Smith vs Johnson"
+                  placeholder="e.g., State vs Rahul (FIR 123)"
                   required 
                 />
+              </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>FIR / Case No.</label>
+                  <input 
+                    type="text" 
+                    value={newCaseData.fir_no || ''} 
+                    onChange={e => setNewCaseData({...newCaseData, fir_no: e.target.value})} 
+                    placeholder="e.g. 104/2024"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Case Type</label>
+                  <select 
+                    value={newCaseData.case_type}
+                    onChange={e => setNewCaseData({...newCaseData, case_type: e.target.value})}
+                  >
+                    <option value="Civil">Civil</option>
+                    <option value="Criminal">Criminal</option>
+                    <option value="Constitutional">Constitutional</option>
+                    <option value="Corporate">Corporate</option>
+                  </select>
+                </div>
               </div>
               <div className="form-group">
                 <label>Jurisdiction (code)</label>
@@ -190,7 +213,7 @@ const Cases = () => {
               </div>
               <div className="modal-actions">
                 <button type="button" onClick={() => setShowModal(false)} className="btn-secondary">Cancel</button>
-                <button type="submit" className="btn-primary">Create Case</button>
+                <button type="submit" className="btn-primary">Initialize Case</button>
               </div>
             </form>
           </motion.div>

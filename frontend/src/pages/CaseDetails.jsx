@@ -186,6 +186,17 @@ const CaseDetails = () => {
         </div>
       </header>
 
+      <div className="case-lifecycle glass mb-2">
+        <div className="lifecycle-steps">
+          {['FIR', 'Investigation', 'Chargesheet', 'Trial', 'Judgment'].map((step, idx) => (
+            <div key={step} className={`lifecycle-step ${idx === 2 ? 'active' : ''}`}>
+              <div className="step-circle">{idx + 1}</div>
+              <span>{step}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
       <div className="case-grid">
         <div className="case-main-content">
           <div className="tabs">
@@ -211,6 +222,15 @@ const CaseDetails = () => {
                         </div>
                       </div>
                       <div className="doc-actions">
+                        <button className="icon-button" title="Summarize" onClick={async () => {
+                          setChat(prev => [...prev, { role: 'assistant', content: `✨ Summarizing ${doc.source_name}...` }]);
+                          try {
+                            const res = await api.post('/summarize_document', { document_id: doc.id });
+                            setChat(prev => [...prev, { role: 'assistant', content: `📄 Summary of ${doc.source_name}:\n\n${res.data.summary}` }]);
+                          } catch (e) {
+                            setChat(prev => [...prev, { role: 'assistant', content: "Summarization failed. Backend missing summary endpoint." }]);
+                          }
+                        }}><Sparkles size={18} /></button>
                         <button className="icon-button" onClick={() => handleDeleteDoc(doc.id)}><Trash2 size={18} className="text-danger" /></button>
                         <button className="icon-button"><Download size={18} /></button>
                       </div>

@@ -71,6 +71,17 @@ const Drafting = () => {
     }
   };
 
+  const handleExportPDF = () => {
+    if (!draftContent) return;
+    const blob = new Blob([draftContent], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = "Legal_Draft.txt";
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="drafting-page animate-fade-in">
       <header className="page-header">
@@ -96,9 +107,9 @@ const Drafting = () => {
                 {isSaving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
                 <span>Save to Case</span>
               </button>
-              <button className="btn-primary">
+              <button className="btn-primary" onClick={handleExportPDF}>
                 <Download size={18} />
-                <span>Export PDF</span>
+                <span>Export Draft</span>
               </button>
             </div>
           </div>

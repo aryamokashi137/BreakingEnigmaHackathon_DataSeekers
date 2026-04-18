@@ -13,9 +13,7 @@ echo "*************************************************"
 echo "Legal RAG Pipeline - Starting Application Services"
 echo "*************************************************"
 
-export FLASK_APP=api/app.py
-export FLASK_ENV=development
-PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
+export PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
 cd "$PROJECT_ROOT" || exit 1
 
 BACKEND_LOG="${TMPDIR:-/tmp}/legalnexus-backend.log"
@@ -47,7 +45,7 @@ cleanup() {
     echo "Stopping services..."
 
     if [ -n "$API_PID" ] && kill -0 "$API_PID" 2>/dev/null; then
-        echo "Stopping Flask API server (PID: $API_PID)..."
+        echo "Stopping FastAPI server (PID: $API_PID)..."
         kill "$API_PID" 2>/dev/null
     fi
 
@@ -87,30 +85,30 @@ echo "Checking Python dependencies..."
 "$PIP_BIN" install -r requirements.txt || exit 1
 
 echo "Checking Node.js dependencies..."
-if [ ! -d "ui/node_modules" ]; then
+if [ ! -d "frontend/node_modules" ]; then
     echo "Installing Node.js dependencies..."
     (
-        cd ui || exit 1
+        cd frontend || exit 1
         npm install
     ) || exit 1
 fi
 
-echo "Starting Flask API server..."
+echo "Starting FastAPI server..."
 : > "$BACKEND_LOG"
-"$PYTHON_BIN" api/app.py >"$BACKEND_LOG" 2>&1 &
+"$PYTHON_BIN" backend/main.py >"$BACKEND_LOG" 2>&1 &
 API_PID=$!
 sleep 3
 
 if ! kill -0 "$API_PID" 2>/dev/null; then
-    print_log_and_exit "Flask API server" "$BACKEND_LOG"
+    print_log_and_exit "FastAPI server" "$BACKEND_LOG"
 fi
-echo "Flask API server started with PID: $API_PID"
+echo "FastAPI server started with PID: $API_PID"
 
 echo "Starting React development server..."
 : > "$FRONTEND_LOG"
 (
-    cd ui || exit 1
-    BROWSER=none DANGEROUSLY_DISABLE_HOST_CHECK=true npm start >"$FRONTEND_LOG" 2>&1
+    cd frontend || exit 1
+    npm run dev >"$FRONTEND_LOG" 2>&1
 ) &
 UI_PID=$!
 sleep 5
@@ -124,8 +122,9 @@ echo ""
 echo "*************************************************"
 echo "Application services successfully started"
 echo "*************************************************"
-echo "Backend API:  http://localhost:5000"
-echo "Frontend UI:  http://localhost:3000"
+echo "Backend API:  http://localhost:8000"
+echo "API Docs:     http://localhost:8000/api/docs"
+echo "Frontend UI:  http://localhost:5173"
 echo "Backend log:  $BACKEND_LOG"
 echo "Frontend log: $FRONTEND_LOG"
 echo "*************************************************"

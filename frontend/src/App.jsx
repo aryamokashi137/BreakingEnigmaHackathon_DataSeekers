@@ -16,7 +16,7 @@ function App() {
     // Automatically initialize the Legal AI agent on app startup
     const init = async () => {
       try {
-        await initializeAgent('openai/gpt-4o-mini'); // Using a fast, reliable model via OpenRouter
+        await initializeAgent(); // Defaults to model in .env
         console.log("Legal AI Agent Initialized");
       } catch (err) {
         console.error("Agent init failed:", err);

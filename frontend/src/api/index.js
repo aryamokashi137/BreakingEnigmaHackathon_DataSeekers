@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = 'http://localhost:8000/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -61,8 +61,38 @@ export const getChatHistory = async () => {
   return response.data;
 };
 
-export const getClients = async (searchTerm = '') => {
-  const response = await api.get('/get_clients', { params: { search_term: searchTerm } });
+export const summarizeDocument = async (docId) => {
+  const response = await api.post('/summarize_document', { document_id: docId });
+  return response.data;
+};
+
+export const getDashboardStats = async () => {
+  const response = await api.get('/dashboard/stats');
+  return response.data;
+};
+
+export const updateCaseStatus = async (caseId, status) => {
+  const response = await api.post('/update_case_status', { case_id: caseId, status });
+  return response.data;
+};
+
+export const generateDraft = async (draftType, details) => {
+  const response = await api.post('/ai/generate_draft', { draft_type: draftType, details });
+  return response.data;
+};
+
+export const suggestNextStep = async () => {
+  const response = await api.post('/ai/suggest_next_step');
+  return response.data;
+};
+
+export const getHighlights = async (question) => {
+  const response = await api.post('/get_highlights', { question });
+  return response.data;
+};
+
+export const getWelcomeMessage = async () => {
+  const response = await api.get('/welcome');
   return response.data;
 };
 
