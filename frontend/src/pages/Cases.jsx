@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { getCases, createCase } from "../api";
+import { getCases, createCase, deleteCase } from "../api";
 
 export default function Cases() {
   const [cases, setCases] = useState([]);
@@ -18,19 +18,34 @@ export default function Cases() {
     load();
   };
 
+  const handleDelete = async (e, caseId) => {
+    e.stopPropagation();
+    if (!window.confirm("Delete this case and all its documents?")) return;
+    await deleteCase(caseId);
+    load();
+  };
+
   return (
     <div style={{ padding: 24 }}>
       <h2>⚖️ Legal Workflow Assistant</h2>
 
-      <div style={{ marginBottom: 16 }}>
-        <input
-          placeholder="Case name..."
-          value={caseName}
-          onChange={(e) => setCaseName(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleCreate()}
-          style={{ padding: 8, width: 260, marginRight: 8 }}
-        />
-        <button onClick={handleCreate}>+ Create Case</button>
+      <div style={{ marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div>
+          <input
+            placeholder="Case name..."
+            value={caseName}
+            onChange={(e) => setCaseName(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleCreate()}
+            style={{ padding: 8, width: 260, marginRight: 8 }}
+          />
+          <button onClick={handleCreate}>+ Create Case</button>
+        </div>
+        <button
+          onClick={() => navigate("/drafting")}
+          style={{ padding: "8px 16px", background: "#0070f3", color: "#fff", border: "none", borderRadius: 4, cursor: "pointer" }}
+        >
+          ✍️ AI Document Drafting
+        </button>
       </div>
 
       <h3>Cases</h3>
@@ -46,12 +61,23 @@ export default function Cases() {
               background: "#f0f0f0",
               cursor: "pointer",
               borderRadius: 4,
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
             }}
           >
-            📁 {c.case_name}
-            <span style={{ fontSize: 12, color: "#888", marginLeft: 12 }}>
-              {c.created_at?.slice(0, 10)}
+            <span>
+              📁 {c.case_name}
+              <span style={{ fontSize: 12, color: "#888", marginLeft: 12 }}>
+                {c.created_at?.slice(0, 10)}
+              </span>
             </span>
+            <button
+              onClick={(e) => handleDelete(e, c._id)}
+              style={{ fontSize: 12, color: "red", background: "none", border: "none", cursor: "pointer", padding: "2px 6px" }}
+            >
+              🗑️
+            </button>
           </li>
         ))}
       </ul>

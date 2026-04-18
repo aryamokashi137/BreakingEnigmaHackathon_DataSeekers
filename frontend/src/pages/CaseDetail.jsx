@@ -74,6 +74,18 @@ export default function CaseDetail() {
       {/* Left panel */}
       <div style={{ width: 280, flexShrink: 0 }}>
         <button onClick={() => navigate("/")}>← Back</button>
+        <button
+          onClick={() => navigate(`/case/${caseId}/analysis`)}
+          style={{ marginLeft: 8, padding: "4px 10px", background: "#16a34a", color: "#fff", border: "none", borderRadius: 4, cursor: "pointer", fontSize: 12 }}
+        >
+          🧠 Analyze Case
+        </button>
+        <button
+          onClick={() => navigate(`/case/${caseId}/timeline`)}
+          style={{ marginLeft: 8, padding: "4px 10px", background: "#0891b2", color: "#fff", border: "none", borderRadius: 4, cursor: "pointer", fontSize: 12 }}
+        >
+          📅 Timeline
+        </button>
         <h3>📂 Documents</h3>
 
         <input type="file" accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg" onChange={handleUpload} />

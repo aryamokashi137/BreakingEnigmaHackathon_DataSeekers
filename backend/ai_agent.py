@@ -130,6 +130,158 @@ Be accurate, concise, and helpful."""
     return _call_llm(prompt, max_tokens=1024)
 
 
+# ── CASE LIFECYCLE + SMART AGENT ────────────────────────────────────────────────
+
+import json
+import re
+
+def extract_lifecycle(text: str) -> dict:
+    prompt = f"""You are a legal analyst AI. Analyze the following legal case documents and extract structured lifecycle information.
+
+Document Content:
+{text[:6000]}
+
+Extract and return ONLY a valid JSON object with this exact structure:
+{{
+  "timeline": ["event 1", "event 2"],
+  "parties": ["Party Name (Role)"],
+  "case_type": "Civil / Criminal / Family / etc.",
+  "current_stage": "Investigation / Trial / Appeal / etc.",
+  "legal_issues": ["issue 1", "issue 2"],
+  "key_events": ["key event 1", "key event 2"]
+}}
+
+Return ONLY the JSON. No explanation. No markdown."""
+
+    raw = _call_llm(prompt, max_tokens=1024)
+    # Strip markdown code fences if present
+    raw = re.sub(r"```(?:json)?\n?", "", raw).strip().rstrip("`")
+    try:
+        return json.loads(raw)
+    except Exception:
+        return {
+            "timeline": [],
+            "parties": [],
+            "case_type": "Unknown",
+            "current_stage": "Unknown",
+            "legal_issues": [],
+            "key_events": [],
+            "raw": raw,
+        }
+
+
+def analyze_case(lifecycle: dict, chunks: list[dict]) -> dict:
+    context = "\n\n".join(c["text"] for c in chunks[:5]) if chunks else "No document context available."
+    lifecycle_text = json.dumps(lifecycle, indent=2)
+
+    prompt = f"""You are an experienced legal advisor and strategist.
+
+Based on the case lifecycle data and document context below, provide a comprehensive legal analysis.
+
+Case Lifecycle:
+{lifecycle_text}
+
+Document Context:
+{context}
+
+Provide your analysis as ONLY a valid JSON object with this exact structure:
+{{
+  "strengths": ["strength 1", "strength 2"],
+  "risks": ["risk 1", "risk 2"],
+  "next_steps": ["step 1", "step 2"],
+  "strategy": ["strategy point 1", "strategy point 2"]
+}}
+
+Be practical, realistic, and use legal reasoning. Return ONLY the JSON. No explanation. No markdown."""
+
+    raw = _call_llm(prompt, max_tokens=1024)
+    raw = re.sub(r"```(?:json)?\n?", "", raw).strip().rstrip("`")
+    try:
+        return json.loads(raw)
+    except Exception:
+        return {
+            "strengths": [],
+            "risks": [],
+            "next_steps": [],
+            "strategy": [],
+            "raw": raw,
+        }
+
+
+# ── DOCUMENT DRAFTING ─────────────────────────────────────────────────────────
+
+DOCUMENT_TYPES = {
+    "affidavit": {
+        "label": "Affidavit",
+        "fields": ["deponent_name", "age", "address", "statement", "date", "location"],
+    },
+    "bail_application": {
+        "label": "Bail Application",
+        "fields": ["applicant_name", "case_number", "court_name", "charges", "grounds", "date", "location"],
+    },
+    "legal_notice": {
+        "label": "Legal Notice",
+        "fields": ["sender_name", "sender_address", "recipient_name", "recipient_address", "subject", "facts", "demand", "date"],
+    },
+}
+
+
+def generate_draft(doc_type: str, data: dict) -> str:
+    if doc_type not in DOCUMENT_TYPES:
+        return "Unsupported document type."
+
+    label = DOCUMENT_TYPES[doc_type]["label"]
+    fields_text = "\n".join(f"- {k.replace('_', ' ').title()}: {v}" for k, v in data.items())
+
+    prompt = f"""You are an expert legal document drafter with years of experience in Indian law.
+
+Generate a complete, properly formatted {label} using the details provided below.
+
+Details:
+{fields_text}
+
+Requirements:
+- Use formal legal language and tone throughout
+- Include all standard sections and clauses for a {label}
+- Add proper headings, numbering, and structure
+- Include standard legal declarations and signatures section
+- Make it ready for real-world use
+- Do NOT add placeholder text — use the provided details directly
+
+Generate the complete {label} now:"""
+
+    return _call_llm(prompt, max_tokens=2048)
+
+
+# ── DEADLINE & COURT TRACKER ──────────────────────────────────────────────────
+
+def extract_deadlines(text: str) -> list:
+    prompt = f"""You are a legal analyst AI. Analyze the following legal case documents and extract all important dates and events.
+
+Document Content:
+{text[:6000]}
+
+Tasks:
+- Identify ALL dates mentioned in the document
+- Determine the event type: hearing, filing_deadline, submission, judgment, notice, other
+- Add a short description of the event
+- Format dates as YYYY-MM-DD (if only month/year known, use first day e.g. 2026-04-01)
+
+Return ONLY a valid JSON object:
+{{"events": [
+  {{"date": "YYYY-MM-DD", "type": "hearing", "description": "Court hearing scheduled"}}
+]}}
+
+Return ONLY the JSON. No explanation. No markdown."""
+
+    raw = _call_llm(prompt, max_tokens=1024)
+    raw = re.sub(r"```(?:json)?\n?", "", raw).strip().rstrip("`")
+    try:
+        return json.loads(raw).get("events", [])
+    except Exception:
+        return []
+
+
 # ── AGENTIC INTENT CLASSIFIER ──────────────────────────────────────────────────
 
 def detect_intent(query: str) -> str:
