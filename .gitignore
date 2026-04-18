@@ -1,27 +1,28 @@
-# Environments
-venv/
-env/
-.venv/
-
-# Environment Variables
-.env
-.env.local
-
-# API keys and secrets
-*.pem
-*.key
-
 # Python
 __pycache__/
 *.py[cod]
 *$py.class
-*.so
+venv/
+env/
+.env
 
-# Uploads
-backend/uploads/
+# Node
+node_modules/
+dist/
+dist-ssr/
+*.local
 
-# IDE/OS
+# Editor
 .vscode/
 .idea/
+*.swp
+*.swo
+
+# Project
+uploads/
+*.pdf
+Miniconda3-latest-Linux-x86_64.sh
+
+# Git
 .DS_Store
-Thumbs.db
+.codex
