@@ -25,3 +25,67 @@ input:focus, textarea:focus, select:focus { border-color: #4F46E5 !important; bo
 .btn:hover:not(:disabled) { opacity: 0.88; transform: translateY(-1px); }
 .btn:active:not(:disabled) { transform: translateY(0); }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Global Layout Utilities */
+.grid-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 24px;
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 24px;
+}
+
+.responsive-flex {
+  display: flex;
+  gap: 24px;
+}
+
+@media (max-width: 1024px) {
+  .grid-layout {
+    grid-template-columns: 1fr;
+  }
+  .responsive-flex {
+    flex-direction: column;
+  }
+}
+
+/* Sidebar */
+.sidebar-container {
+  width: 240px;
+  min-height: 100vh;
+  background: #fff;
+  border-right: 1px solid #E2E8F0;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.main-content {
+  padding: 0 32px;
+  max-width: 1200px;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .sidebar-container {
+    position: fixed;
+    left: -240px;
+    top: 0;
+    z-index: 100;
+    transition: left 0.3s ease;
+  }
+  .sidebar-container.open {
+    left: 0;
+  }
+  .main-content {
+    padding: 0 16px;
+  }
+}

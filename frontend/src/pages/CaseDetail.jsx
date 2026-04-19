@@ -100,7 +100,7 @@ export default function CaseDetail() {
 
         {/* Back */}
         <div style={{ padding: "12px 16px", borderBottom: "1px solid #F1F5F9" }}>
-          <button className="btn" onClick={() => navigate("/")}
+          <button className="btn" onClick={() => navigate("/cases")}
             style={{ background: "#F1F5F9", color: "#475569", width: "100%", justifyContent: "flex-start" }}>
             <ArrowLeft size={14} /> All Cases
           </button>

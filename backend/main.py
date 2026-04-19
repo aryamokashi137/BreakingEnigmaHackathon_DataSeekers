@@ -25,6 +25,15 @@ app.add_middleware(
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
+# Base directory = where main.py lives, so relative paths always resolve correctly
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+def resolve_path(file_path: str) -> str:
+    """Convert stored relative path to absolute path."""
+    if os.path.isabs(file_path):
+        return file_path
+    return os.path.join(BASE_DIR, file_path)
+
 def str_id(doc):
     doc["_id"] = str(doc["_id"])
     return doc
@@ -64,8 +73,8 @@ def delete_case(case_id: str):
     # Delete all documents and their files
     docs = list(documents_collection.find({"case_id": case_id}))
     for doc in docs:
-        if os.path.exists(doc["file_path"]):
-            os.remove(doc["file_path"])
+        if os.path.exists(resolve_path(doc["file_path"])):
+            os.remove(resolve_path(doc["file_path"]))
     documents_collection.delete_many({"case_id": case_id})
     chats_collection.delete_many({"case_id": case_id})
     cases_collection.delete_one({"_id": ObjectId(case_id)})
@@ -91,11 +100,12 @@ async def upload_document(case_id: str, file: UploadFile = File(...)):
     os.makedirs(case_dir, exist_ok=True)
     file_path = os.path.join(case_dir, file.filename)
 
-    with open(file_path, "wb") as f:
+    abs_file_path = resolve_path(file_path)
+    with open(abs_file_path, "wb") as f:
         shutil.copyfileobj(file.file, f)
 
     # Extract text + chunk + embed → FAISS
-    text = extract_text(file_path)
+    text = extract_text(abs_file_path)
     if text:
         chunks = chunk_text(text, case_id=case_id, doc_name=file.filename)
         add_chunks(case_id, chunks)
@@ -122,8 +132,8 @@ def delete_document(doc_id: str):
     doc = documents_collection.find_one({"_id": ObjectId(doc_id)})
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
-    if os.path.exists(doc["file_path"]):
-        os.remove(doc["file_path"])
+    if os.path.exists(resolve_path(doc["file_path"])):
+        os.remove(resolve_path(doc["file_path"]))
     documents_collection.delete_one({"_id": ObjectId(doc_id)})
     return {"message": "Deleted"}
 
@@ -185,7 +195,7 @@ def summarize_document(case_id: str, doc_name: str):
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
 
-    text = extract_text(doc["file_path"])
+    text = extract_text(resolve_path(doc["file_path"]))
     if not text.strip():
         return {"summary": "This document has no extractable text content (e.g. scanned image)."}
 
@@ -236,7 +246,7 @@ def build_case_lifecycle(case_id: str, force: bool = False):
 
     combined_text = ""
     for doc in docs:
-        combined_text += extract_text(doc["file_path"]) + "\n\n"
+        combined_text += extract_text(resolve_path(doc["file_path"])) + "\n\n"
 
     lifecycle = extract_lifecycle(combined_text)
 
@@ -287,7 +297,7 @@ def extract_case_deadlines(case_id: str):
 
     combined_text = ""
     for doc in docs:
-        combined_text += extract_text(doc["file_path"]) + "\n\n"
+        combined_text += extract_text(resolve_path(doc["file_path"])) + "\n\n"
 
     events = extract_deadlines(combined_text)
 

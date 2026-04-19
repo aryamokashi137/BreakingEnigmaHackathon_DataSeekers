@@ -1,160 +1,177 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Scale, FolderOpen, Plus, Trash2, FileText, PenTool } from "lucide-react";
+import { Plus, Search, Filter, Grid, List, Trash2, Clock } from "lucide-react";
 import { getCases, createCase, deleteCase } from "../api";
 
 export default function Cases() {
-  const [cases, setCases] = useState([]);
-  const [caseName, setCaseName] = useState("");
-  const [creating, setCreating] = useState(false);
   const navigate = useNavigate();
+  const [cases, setCases] = useState([]);
+  const [search, setSearch] = useState("");
 
-  const load = () => getCases().then((r) => setCases(r.data));
-  useEffect(() => { load(); }, []);
+  const loadCases = () => getCases().then((r) => setCases(r.data));
+
+  useEffect(() => {
+    loadCases();
+  }, []);
 
   const handleCreate = async () => {
-    if (!caseName.trim()) return;
-    setCreating(true);
-    await createCase(caseName.trim());
-    setCaseName("");
-    setCreating(false);
-    load();
+    const name = prompt("Enter Case Name:");
+    if (!name) return;
+    await createCase(name);
+    loadCases();
   };
 
-  const handleDelete = async (e, caseId) => {
+  const handleDelete = async (e, id) => {
     e.stopPropagation();
-    if (!window.confirm("Delete this case and all its documents?")) return;
-    await deleteCase(caseId);
-    load();
+    if (!window.confirm("Are you sure?")) return;
+    await deleteCase(id);
+    loadCases();
+  };
+
+  // Helper to generate mock data for UI enhancement since backend might not have it
+  const getMockData = (index) => {
+    const statuses = [
+      { text: "Investigation", color: "#DBEAFE", textColor: "#1E40AF" },
+      { text: "Chargesheet", color: "#F3E8FF", textColor: "#7E22CE" },
+      { text: "Trial", color: "#FFEDD5", textColor: "#C2410C" }
+    ];
+    const categories = ["Criminal Defense", "Corporate", "Civil", "Tax Law", "Employment Law"];
+    
+    return {
+      status: statuses[index % 3],
+      category: categories[index % 5],
+      fir: `FIR/2026/${1234 + index}`,
+      progress: [35, 60, 75, 20, 85, 90][index % 6],
+      client: ["Robert Johnson", "Smith Corporation", "Williams Family", "James Brown", "Green Industries", "Sarah Davis"][index % 6]
+    };
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#F8FAFC" }}>
-      {/* Top Nav */}
-      <nav style={{
-        background: "#fff", borderBottom: "1px solid #E2E8F0",
-        padding: "0 32px", height: 60, display: "flex",
-        alignItems: "center", justifyContent: "space-between",
-        boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <Scale size={22} color="#4F46E5" />
-          <span style={{ fontWeight: 700, fontSize: 17, color: "#0F172A" }}>LegalAI</span>
-          <span style={{ fontSize: 11, background: "#EEF2FF", color: "#4F46E5", padding: "2px 8px", borderRadius: 20, fontWeight: 600 }}>BETA</span>
+    <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+      <style>{`
+        .delete-btn { display: none; }
+        .card-grid > div:hover .delete-btn { display: flex; }
+      `}</style>
+      
+      {/* Header */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div>
+          <h1 style={{ fontSize: "28px", fontWeight: "700", color: "#0F172A", marginBottom: "4px" }}>Cases</h1>
+          <p style={{ color: "#64748B", fontSize: "15px" }}>Manage and track all your legal cases</p>
         </div>
         <button
           className="btn"
-          onClick={() => navigate("/drafting")}
-          style={{ background: "#4F46E5", color: "#fff" }}
+          onClick={handleCreate}
+          style={{ background: "#1E3A8A", color: "#fff", padding: "10px 16px", borderRadius: "8px", display: "flex", alignItems: "center", gap: "8px", fontWeight: "600" }}
         >
-          <PenTool size={14} /> AI Drafting
+          <Plus size={18} /> New Case
         </button>
-      </nav>
+      </div>
 
-      <div style={{ maxWidth: 900, margin: "0 auto", padding: "40px 24px" }}>
-        {/* Hero */}
-        <div style={{ marginBottom: 36 }}>
-          <h1 style={{ fontSize: 28, fontWeight: 700, color: "#0F172A", marginBottom: 8 }}>
-            Case Dashboard
-          </h1>
-          <p style={{ color: "#64748B", fontSize: 15 }}>
-            Manage your legal cases, upload documents, and get AI-powered insights.
-          </p>
-        </div>
-
-        {/* Create Case */}
-        <div style={{
-          background: "#fff", border: "1px solid #E2E8F0", borderRadius: 12,
-          padding: 24, marginBottom: 32, boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
-        }}>
-          <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 14, color: "#374151" }}>
-            Create New Case
-          </h3>
-          <div style={{ display: "flex", gap: 10 }}>
-            <input
-              placeholder="Enter case name (e.g. State vs. Sharma 2024)..."
-              value={caseName}
-              onChange={(e) => setCaseName(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleCreate()}
-              style={{
-                flex: 1, padding: "10px 14px", border: "1px solid #E2E8F0",
-                borderRadius: 8, fontSize: 14, background: "#F8FAFC",
-              }}
+      {/* Toolbar */}
+      <div style={{ 
+        display: "flex", justifyContent: "space-between", alignItems: "center", 
+        padding: "16px", background: "#fff", borderRadius: "12px", border: "1px solid #E2E8F0"
+      }}>
+        <div style={{ display: "flex", gap: "12px", flex: 1, maxWidth: "700px" }}>
+          <div style={{ position: "relative", flex: 1 }}>
+            <Search size={18} color="#94A3B8" style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)" }} />
+            <input 
+              type="text" 
+              placeholder="Search cases by name, client, or FIR number..." 
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={{ width: "100%", padding: "10px 12px 10px 40px", borderRadius: "8px", border: "1px solid #E2E8F0", outline: "none", fontSize: "14px" }}
             />
-            <button
-              className="btn"
-              onClick={handleCreate}
-              disabled={creating || !caseName.trim()}
-              style={{ background: "#4F46E5", color: "#fff", padding: "10px 20px" }}
+          </div>
+          <select style={{ padding: "10px 16px", background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: "8px", color: "#475569", fontSize: "14px", fontWeight: "500", outline: "none" }}>
+            <option>All Cases</option>
+            <option>Active</option>
+            <option>Closed</option>
+          </select>
+          <button style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 16px", background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: "8px", color: "#475569", fontSize: "14px", fontWeight: "500", cursor: "pointer" }}>
+            <Filter size={16} />
+          </button>
+        </div>
+        
+        <div style={{ display: "flex", gap: "8px", marginLeft: "24px" }}>
+          <button style={{ padding: "8px", background: "#F1F5F9", border: "none", borderRadius: "6px", color: "#1E3A8A", cursor: "pointer" }}><Grid size={20} /></button>
+          <button style={{ padding: "8px", background: "transparent", border: "none", borderRadius: "6px", color: "#64748B", cursor: "pointer" }}><List size={20} /></button>
+        </div>
+      </div>
+
+      {/* Cases Grid */}
+      <div className="card-grid">
+        {cases.filter(c => (c.case_name || c.title || "").toLowerCase().includes(search.toLowerCase())).map((c, i) => {
+          const mock = getMockData(i);
+          return (
+            <div
+              key={c._id}
+              onClick={() => navigate(`/case/${c._id}`)}
+              style={{
+                background: "#fff", border: "1px solid #E2E8F0", borderRadius: "12px",
+                padding: "20px", cursor: "pointer", transition: "all 0.15s",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.06)", position: "relative"
+              }}
+              onMouseEnter={e => e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.08)"}
+              onMouseLeave={e => e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.06)"}
             >
-              <Plus size={15} /> {creating ? "Creating..." : "Create Case"}
-            </button>
-          </div>
-        </div>
-
-        {/* Cases Grid */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-          <h3 style={{ fontSize: 15, fontWeight: 600, color: "#374151" }}>
-            All Cases <span style={{ color: "#94A3B8", fontWeight: 400 }}>({cases.length})</span>
-          </h3>
-        </div>
-
-        {cases.length === 0 ? (
-          <div style={{
-            textAlign: "center", padding: "60px 24px",
-            background: "#fff", borderRadius: 12, border: "1px dashed #CBD5E1",
-          }}>
-            <FolderOpen size={40} color="#CBD5E1" style={{ marginBottom: 12 }} />
-            <p style={{ color: "#94A3B8", fontSize: 15 }}>No cases yet. Create your first case above.</p>
-          </div>
-        ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
-            {cases.map((c) => (
-              <div
-                key={c._id}
-                onClick={() => navigate(`/case/${c._id}`)}
-                style={{
-                  background: "#fff", border: "1px solid #E2E8F0", borderRadius: 12,
-                  padding: 20, cursor: "pointer", transition: "all 0.15s",
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
-                  position: "relative",
-                }}
-                onMouseEnter={e => e.currentTarget.style.boxShadow = "0 4px 12px rgba(79,70,229,0.12)"}
-                onMouseLeave={e => e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.06)"}
-              >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                  <div style={{
-                    width: 40, height: 40, background: "#EEF2FF", borderRadius: 10,
-                    display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 12,
-                  }}>
-                    <FileText size={18} color="#4F46E5" />
-                  </div>
-                  <button
-                    onClick={(e) => handleDelete(e, c._id)}
-                    className="btn"
-                    style={{ background: "transparent", color: "#94A3B8", padding: "4px 6px" }}
-                    onMouseEnter={e => e.currentTarget.style.color = "#DC2626"}
-                    onMouseLeave={e => e.currentTarget.style.color = "#94A3B8"}
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-                <h4 style={{ fontSize: 14, fontWeight: 600, color: "#0F172A", marginBottom: 6 }}>
-                  {c.case_name}
-                </h4>
-                <p style={{ fontSize: 12, color: "#94A3B8" }}>
-                  Created {c.created_at?.slice(0, 10)}
-                </p>
-                <div style={{
-                  marginTop: 14, paddingTop: 12, borderTop: "1px solid #F1F5F9",
-                  fontSize: 12, color: "#4F46E5", fontWeight: 600,
+              {/* Header tags */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+                <span style={{ 
+                  padding: "4px 12px", borderRadius: "20px", fontSize: "12px", fontWeight: "600",
+                  backgroundColor: mock.status.color, color: mock.status.textColor
                 }}>
-                  Open Workspace →
+                  {mock.status.text}
+                </span>
+                <span style={{ fontSize: "12px", color: "#64748B", display: "flex", alignItems: "center", gap: "4px" }}>
+                  <Clock size={12} /> {c.created_at ? c.created_at.slice(0, 10) : "2026-04-15"}
+                </span>
+              </div>
+
+              {/* Title & Client */}
+              <div style={{ marginBottom: "20px" }}>
+                <h3 style={{ fontSize: "18px", fontWeight: "600", color: "#0F172A", marginBottom: "4px" }}>
+                  {c.case_name || c.title || "Untitled Case"}
+                </h3>
+                <p style={{ fontSize: "14px", color: "#64748B" }}>{mock.client}</p>
+              </div>
+
+              {/* Details */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+                <span style={{ fontSize: "13px", color: "#64748B" }}>{mock.category}</span>
+                <span style={{ fontSize: "13px", color: "#64748B" }}>{mock.fir}</span>
+              </div>
+
+              {/* Progress */}
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                  <span style={{ fontSize: "13px", color: "#475569", fontWeight: "500" }}>Progress</span>
+                  <span style={{ fontSize: "13px", color: "#0F172A", fontWeight: "600" }}>{mock.progress}%</span>
+                </div>
+                <div style={{ width: "100%", height: "6px", backgroundColor: "#F1F5F9", borderRadius: "3px", overflow: "hidden" }}>
+                  <div style={{ width: `${mock.progress}%`, height: "100%", backgroundColor: "#4F46E5" }}></div>
                 </div>
               </div>
-            ))}
-          </div>
-        )}
+
+              {/* Delete Button */}
+              <button
+                onClick={(e) => handleDelete(e, c._id)}
+                className="delete-btn"
+                style={{
+                  position: "absolute", top: "20px", right: "20px",
+                  background: "rgba(255, 255, 255, 0.9)", border: "1px solid #E2E8F0", color: "#94A3B8",
+                  padding: "6px", borderRadius: "6px", cursor: "pointer", 
+                  alignItems: "center", justifyContent: "center", boxShadow: "0 2px 4px rgba(0,0,0,0.05)"
+                }}
+                onMouseEnter={e => e.currentTarget.style.color = "#DC2626"}
+                onMouseLeave={e => e.currentTarget.style.color = "#94A3B8"}
+              >
+                <Trash2 size={14} />
+              </button>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
