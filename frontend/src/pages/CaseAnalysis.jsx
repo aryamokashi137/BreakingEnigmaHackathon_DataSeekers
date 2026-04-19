@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Loader2, RefreshCw, Zap, Brain, Scale, Shield, Target, AlertTriangle, ListChecks, ChevronRight } from "lucide-react";
+import { ArrowLeft, Loader2, RefreshCw, Zap, Brain, Scale, Shield, Target, AlertTriangle, ListChecks, ChevronRight, Calendar } from "lucide-react";
 import { buildLifecycle, getLifecycle, analyzeCase } from "../api";
 
 const Spinner = () => <Loader2 size={16} style={{ animation: "spin 1s linear infinite" }} />;
