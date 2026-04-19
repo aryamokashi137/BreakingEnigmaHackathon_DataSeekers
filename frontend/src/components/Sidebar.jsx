@@ -18,20 +18,25 @@ export default function Sidebar({ isOpen, setIsOpen }) {
   ];
 
   return (
-    <div className={`sidebar-container ${isOpen ? "open" : ""}`}>
+    <div className={`sidebar-container ${isOpen ? "open" : ""}`} style={{ boxShadow: "var(--shadow-premium)" }}>
       {/* Logo */}
-      <div style={{ padding: "24px", display: "flex", alignItems: "flex-start", gap: "12px" }}>
-        <div style={{ backgroundColor: "#1E3A8A", color: "white", padding: "8px", borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <Scale size={20} />
+      <div style={{ padding: "32px 24px", display: "flex", alignItems: "center", gap: "14px" }}>
+        <div style={{ 
+          background: "linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%)", 
+          color: "white", padding: "10px", borderRadius: "12px", 
+          display: "flex", alignItems: "center", justifyContent: "center",
+          boxShadow: "0 8px 16px -4px rgba(79, 70, 229, 0.4)"
+        }}>
+          <Scale size={24} />
         </div>
         <div style={{ display: "flex", flexDirection: "column" }}>
-          <span style={{ fontSize: "18px", fontWeight: "700", color: "#0F172A", lineHeight: 1.2 }}>LegalFlow AI</span>
-          <span style={{ fontSize: "12px", color: "#94A3B8" }}>Case Management</span>
+          <span style={{ fontSize: "20px", fontWeight: "800", color: "var(--text-main)", lineHeight: 1.1, letterSpacing: "-0.03em" }}>LegalFlow AI</span>
+          <span style={{ fontSize: "11px", fontWeight: "600", color: "var(--text-light)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Case Intelligence</span>
         </div>
       </div>
 
       {/* Navigation */}
-      <nav style={{ flex: 1, padding: "0 12px", marginTop: "12px", display: "flex", flexDirection: "column", gap: "4px" }}>
+      <nav style={{ flex: 1, padding: "0 16px", marginTop: "8px", display: "flex", flexDirection: "column", gap: "6px" }}>
         {navItems.map((item) => {
           const isActive = location.pathname === item.path ||
             (item.path === "/cases" && location.pathname.startsWith("/case/"));
@@ -39,19 +44,16 @@ export default function Sidebar({ isOpen, setIsOpen }) {
             <Link
               key={item.name}
               to={item.path}
+              className={`nav-link ${isActive ? "active" : ""}`}
               style={{
-                display: "flex", alignItems: "center", gap: "12px",
-                padding: "12px 16px", borderRadius: "8px", textDecoration: "none",
-                color: isActive ? "#0F172A" : "#475569",
-                backgroundColor: isActive ? "#F1F5F9" : "transparent",
-                fontWeight: isActive ? 600 : 500,
-                transition: "all 0.15s ease",
+                padding: "12px 16px",
+                borderRadius: "10px",
+                fontSize: "14px",
+                fontWeight: isActive ? "600" : "500",
               }}
-              onMouseEnter={(e) => { if (!isActive) { e.currentTarget.style.backgroundColor = "#F8FAFC"; e.currentTarget.style.color = "#0F172A"; } }}
-              onMouseLeave={(e) => { if (!isActive) { e.currentTarget.style.backgroundColor = "transparent"; e.currentTarget.style.color = "#475569"; } }}
               onClick={() => setIsOpen(false)}
             >
-              <item.icon size={18} color={isActive ? "#4F46E5" : "#64748B"} />
+              <item.icon size={20} />
               {item.name}
             </Link>
           );
@@ -59,14 +61,23 @@ export default function Sidebar({ isOpen, setIsOpen }) {
       </nav>
 
       {/* User Profile */}
-      <div style={{ padding: "16px", borderTop: "1px solid #E2E8F0", display: "flex", flexDirection: "column", gap: "12px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          <div style={{ width: "36px", height: "36px", borderRadius: "50%", backgroundColor: "#1E3A8A", color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "600", fontSize: "14px" }}>
+      <div style={{ padding: "24px 16px", borderTop: "1px solid var(--border-subtle)", marginTop: "auto" }}>
+        <div style={{ 
+          display: "flex", alignItems: "center", gap: "12px", 
+          padding: "12px", borderRadius: "12px", background: "var(--bg-main)",
+          border: "1px solid var(--border-subtle)"
+        }}>
+          <div style={{ 
+            width: "40px", height: "40px", borderRadius: "10px", 
+            background: "linear-gradient(135deg, #1E293B 0%, #0F172A 100%)", 
+            color: "white", display: "flex", alignItems: "center", justifyContent: "center", 
+            fontWeight: "700", fontSize: "14px" 
+          }}>
             JD
           </div>
-          <div style={{ display: "flex", flexDirection: "column" }}>
-            <span style={{ fontSize: "14px", fontWeight: "600", color: "#0F172A" }}>John Doe</span>
-            <span style={{ fontSize: "12px", color: "#64748B" }}>Senior Partner</span>
+          <div style={{ display: "flex", flexDirection: "column", overflow: "hidden" }}>
+            <span style={{ fontSize: "14px", fontWeight: "700", color: "var(--text-main)", whiteSpace: "nowrap", textOverflow: "ellipsis" }}>John Doe</span>
+            <span style={{ fontSize: "11px", color: "var(--text-muted)", fontWeight: "500" }}>Senior Partner</span>
           </div>
         </div>
       </div>

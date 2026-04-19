@@ -1,51 +1,58 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Loader2, Zap, RefreshCw, Plus, Scale, Calendar } from "lucide-react";
+import { ArrowLeft, Loader2, Zap, RefreshCw, Plus, Scale, Calendar, Clock, AlertCircle, CheckCircle2 } from "lucide-react";
 import { extractDeadlines, getTimeline, addEvent } from "../api";
 
-const Spinner = () => <Loader2 size={14} style={{ animation: "spin 1s linear infinite" }} />;
+const Spinner = () => <Loader2 size={16} style={{ animation: "spin 1s linear infinite" }} />;
 
 const TYPE_META = {
-  hearing:         { bg: "#DBEAFE", color: "#1D4ED8", dot: "#3B82F6", label: "🏛️ Hearing" },
-  filing_deadline: { bg: "#FEE2E2", color: "#B91C1C", dot: "#EF4444", label: "📌 Filing Deadline" },
-  submission:      { bg: "#FEF9C3", color: "#92400E", dot: "#F59E0B", label: "📤 Submission" },
-  judgment:        { bg: "#DCFCE7", color: "#15803D", dot: "#22C55E", label: "⚖️ Judgment" },
-  notice:          { bg: "#F3E8FF", color: "#7E22CE", dot: "#A855F7", label: "📬 Notice" },
-  other:           { bg: "#F1F5F9", color: "#475569", dot: "#94A3B8", label: "📅 Event" },
+  hearing:         { bg: "#E0E7FF", color: "#4338CA", label: "🏛️ Hearing" },
+  filing_deadline: { bg: "#FEE2E2", color: "#B91C1C", label: "📌 Filing" },
+  submission:      { bg: "#FEF9C3", color: "#92400E", label: "📤 Submission" },
+  judgment:        { bg: "#DCFCE7", color: "#15803D", label: "⚖️ Judgment" },
+  notice:          { bg: "#F3E8FF", color: "#7E22CE", label: "📬 Notice" },
+  other:           { bg: "var(--bg-main)", color: "var(--text-muted)", label: "📅 Event" },
 };
 
-const Badge = ({ type }) => {
-  const m = TYPE_META[type] || TYPE_META.other;
-  return (
-    <span style={{ background: m.bg, color: m.color, padding: "2px 10px", borderRadius: 20, fontSize: 11, fontWeight: 700 }}>
-      {m.label}
-    </span>
-  );
-};
-
-const EventRow = ({ event, upcoming }) => {
+const EventCard = ({ event, upcoming }) => {
   const m = TYPE_META[event.type] || TYPE_META.other;
   return (
-    <div style={{ display: "flex", gap: 16, alignItems: "flex-start", marginBottom: 12 }}>
-      {/* Timeline dot */}
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 4 }}>
-        <div style={{ width: 12, height: 12, borderRadius: "50%", background: upcoming ? "#EF4444" : m.dot, flexShrink: 0 }} />
-        <div style={{ width: 2, flex: 1, background: "#E2E8F0", minHeight: 24, marginTop: 4 }} />
-      </div>
-      {/* Card */}
-      <div style={{
-        flex: 1, background: "#fff", border: `1px solid ${upcoming ? "#FECACA" : "#E2E8F0"}`,
-        borderRadius: 10, padding: "12px 16px", marginBottom: 4,
-        boxShadow: upcoming ? "0 2px 8px rgba(239,68,68,0.08)" : "0 1px 3px rgba(0,0,0,0.04)",
-      }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-          <Badge type={event.type} />
-          <span style={{ fontSize: 12, fontWeight: 700, color: upcoming ? "#DC2626" : "#64748B" }}>
-            {event.date}
-            {upcoming && <span style={{ marginLeft: 6, fontSize: 10, background: "#FEE2E2", color: "#DC2626", padding: "1px 6px", borderRadius: 10 }}>UPCOMING</span>}
-          </span>
+    <div style={{ display: "flex", gap: "24px", position: "relative" }}>
+      {/* Timeline Connector */}
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "40px", flexShrink: 0 }}>
+        <div style={{ 
+          width: "40px", height: "40px", borderRadius: "12px", 
+          background: upcoming ? "var(--danger)" : "var(--border-subtle)", 
+          display: "flex", alignItems: "center", justifyContent: "center", color: "white",
+          boxShadow: upcoming ? "0 4px 12px rgba(239, 68, 68, 0.2)" : "none",
+          zIndex: 2
+        }}>
+          {upcoming ? <Clock size={20} /> : <CheckCircle2 size={20} color="var(--text-muted)" />}
         </div>
-        <p style={{ fontSize: 13, color: "#374151", margin: 0 }}>{event.description}</p>
+        <div style={{ width: "2px", flex: 1, background: "var(--border-subtle)", marginTop: "8px", marginBottom: "8px" }} />
+      </div>
+
+      {/* Content Card */}
+      <div className="premium-card" style={{ 
+        flex: 1, padding: "20px 24px", marginBottom: "24px",
+        borderLeft: `4px solid ${upcoming ? "var(--danger)" : "var(--border-subtle)"}`,
+        background: upcoming ? "white" : "var(--bg-main)",
+        opacity: upcoming ? 1 : 0.8
+      }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+          <div style={{ padding: "4px 12px", borderRadius: "20px", background: m.bg, color: m.color, fontSize: "11px", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+            {m.label}
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "14px", fontWeight: "800", color: upcoming ? "var(--danger)" : "var(--text-main)" }}>
+            <Calendar size={14} /> {event.date}
+          </div>
+        </div>
+        <p style={{ fontSize: "15px", fontWeight: "600", color: "var(--text-main)", lineHeight: "1.6" }}>{event.description}</p>
+        {upcoming && (
+          <div style={{ marginTop: "12px", display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", color: "var(--danger)", fontWeight: "700" }}>
+            <AlertCircle size={14} /> Action Required
+          </div>
+        )}
       </div>
     </div>
   );
@@ -93,121 +100,91 @@ export default function Timeline() {
   const total = upcoming.length + past.length;
 
   return (
-    <div style={{ minHeight: "100vh", background: "#F8FAFC" }}>
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    <div className="main-content fade-in" style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
+      
+      {/* Header */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+        <div>
+          <h1 style={{ marginBottom: "8px" }}>Case Chronology</h1>
+          <p style={{ color: "var(--text-muted)", fontSize: "16px", fontWeight: "500" }}>A chronological view of all procedural events and upcoming deadlines.</p>
+        </div>
+        <div style={{ display: "flex", gap: "12px" }}>
+          <button className="btn btn-secondary" onClick={() => setShowForm(!showForm)} style={{ borderRadius: "12px" }}>
+            <Plus size={18} /> Add Event
+          </button>
+          <button className="btn btn-primary" onClick={handleExtract} disabled={loading} style={{ borderRadius: "12px" }}>
+            {loading ? <Spinner /> : <><Zap size={18} /> AI Sync</>}
+          </button>
+          <button className="btn btn-outline" onClick={() => navigate(-1)} style={{ borderRadius: "12px" }}>
+            <ArrowLeft size={18} /> Back
+          </button>
+        </div>
+      </div>
 
-      <nav style={{
-        background: "#fff", borderBottom: "1px solid #E2E8F0", padding: "0 32px",
-        height: 56, display: "flex", alignItems: "center", gap: 16,
-        boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
-      }}>
-        <Scale size={18} color="#4F46E5" />
-        <span style={{ fontWeight: 700, fontSize: 15 }}>LegalAI</span>
-        <span style={{ color: "#CBD5E1" }}>›</span>
-        <span style={{ color: "#64748B", fontSize: 14 }}>Timeline</span>
-        <button className="btn" onClick={() => navigate(-1)} style={{ background: "#F1F5F9", color: "#475569", marginLeft: "auto" }}>
-          <ArrowLeft size={14} /> Back
-        </button>
-      </nav>
+      {error && (
+        <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", color: "#B91C1C", padding: "16px 20px", borderRadius: "12px", fontWeight: "600" }}>
+          ⚠️ {error}
+        </div>
+      )}
 
-      <div style={{ maxWidth: 760, margin: "0 auto", padding: "32px 24px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
-          <div>
-            <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 4 }}>📅 Case Timeline</h1>
-            <p style={{ color: "#64748B" }}>Track hearings, deadlines, and important events.</p>
-          </div>
-          <div style={{ display: "flex", gap: 8 }}>
-            <button className="btn" onClick={() => setShowForm(!showForm)}
-              style={{ background: "#DCFCE7", color: "#16A34A" }}>
-              <Plus size={14} /> Add Event
-            </button>
-            <button className="btn" onClick={handleExtract} disabled={loading}
-              style={{ background: loading ? "#E2E8F0" : "#4F46E5", color: loading ? "#94A3B8" : "#fff" }}>
-              {loading ? <><Spinner /> Extracting...</> : total > 0 ? <><RefreshCw size={14} /> Re-extract</> : <><Zap size={14} /> Extract</>}
+      {/* Form Overlay-like section */}
+      {showForm && (
+        <div className="premium-card scale-in" style={{ padding: "24px" }}>
+          <h3 style={{ fontSize: "16px", marginBottom: "20px" }}>Add Event Manually</h3>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 2fr auto", gap: "16px", alignItems: "flex-end" }}>
+            <div>
+              <label style={{ fontSize: "12px", color: "var(--text-muted)", display: "block", marginBottom: "8px", fontWeight: "700" }}>Date</label>
+              <input type="date" value={form.date} onChange={(e) => setForm(p => ({ ...p, date: e.target.value }))} />
+            </div>
+            <div>
+              <label style={{ fontSize: "12px", color: "var(--text-muted)", display: "block", marginBottom: "8px", fontWeight: "700" }}>Event Type</label>
+              <select value={form.type} onChange={(e) => setForm(p => ({ ...p, type: e.target.value }))}>
+                {Object.entries(TYPE_META).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={{ fontSize: "12px", color: "var(--text-muted)", display: "block", marginBottom: "8px", fontWeight: "700" }}>Event Description</label>
+              <input placeholder="e.g. Evidence submission" value={form.description} onChange={(e) => setForm(p => ({ ...p, description: e.target.value }))} onKeyDown={(e) => e.key === "Enter" && handleAddEvent()} />
+            </div>
+            <button className="btn btn-primary" onClick={handleAddEvent} disabled={adding} style={{ height: "42px", padding: "0 24px", borderRadius: "8px" }}>
+              {adding ? <Spinner /> : "Save"}
             </button>
           </div>
         </div>
+      )}
 
-        {error && (
-          <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", color: "#B91C1C", padding: "12px 16px", borderRadius: 8, marginBottom: 16 }}>
-            ⚠️ {error}
-          </div>
-        )}
-
-        {/* Add Event Form */}
-        {showForm && (
-          <div style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 12, padding: 20, marginBottom: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
-            <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 14 }}>➕ Add Event Manually</h3>
-            <div style={{ display: "grid", gridTemplateColumns: "160px 180px 1fr auto", gap: 10, alignItems: "flex-end" }}>
-              <div>
-                <label style={{ fontSize: 11, color: "#64748B", display: "block", marginBottom: 4, fontWeight: 600 }}>Date</label>
-                <input type="date" value={form.date}
-                  onChange={(e) => setForm((p) => ({ ...p, date: e.target.value }))}
-                  style={{ width: "100%", padding: "8px 10px", border: "1px solid #E2E8F0", borderRadius: 8, fontSize: 13 }} />
-              </div>
-              <div>
-                <label style={{ fontSize: 11, color: "#64748B", display: "block", marginBottom: 4, fontWeight: 600 }}>Type</label>
-                <select value={form.type} onChange={(e) => setForm((p) => ({ ...p, type: e.target.value }))}
-                  style={{ width: "100%", padding: "8px 10px", border: "1px solid #E2E8F0", borderRadius: 8, fontSize: 13 }}>
-                  {Object.entries(TYPE_META).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-                </select>
-              </div>
-              <div>
-                <label style={{ fontSize: 11, color: "#64748B", display: "block", marginBottom: 4, fontWeight: 600 }}>Description</label>
-                <input value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
-                  onKeyDown={(e) => e.key === "Enter" && handleAddEvent()}
-                  placeholder="e.g. Hearing before District Court"
-                  style={{ width: "100%", padding: "8px 10px", border: "1px solid #E2E8F0", borderRadius: 8, fontSize: 13 }} />
-              </div>
-              <button className="btn" onClick={handleAddEvent} disabled={adding}
-                style={{ background: adding ? "#E2E8F0" : "#16A34A", color: adding ? "#94A3B8" : "#fff", padding: "8px 16px" }}>
-                {adding ? <Spinner /> : "Add"}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Next event callout */}
-        {upcoming.length > 0 && (
-          <div style={{
-            background: "linear-gradient(135deg, #FEF2F2, #FFF7F7)",
-            border: "1px solid #FECACA", borderRadius: 12, padding: "16px 20px",
-            marginBottom: 28, display: "flex", alignItems: "center", gap: 14,
-          }}>
-            <div style={{ fontSize: 28 }}>🔴</div>
-            <div>
-              <p style={{ fontSize: 11, fontWeight: 700, color: "#DC2626", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>
-                Next Upcoming Event
-              </p>
-              <p style={{ fontSize: 14, color: "#0F172A" }}>
-                <strong>{upcoming[0].date}</strong> — {upcoming[0].description}
-              </p>
-            </div>
-          </div>
-        )}
-
+      {/* Timeline Stream */}
+      <div style={{ maxWidth: "800px", margin: "0 auto", width: "100%" }}>
+        
         {total === 0 && !loading && (
-          <div style={{ textAlign: "center", padding: "60px 0", color: "#94A3B8" }}>
-            <Calendar size={40} color="#CBD5E1" style={{ marginBottom: 12 }} />
-            <p>No events yet. Extract from documents or add manually.</p>
+          <div className="premium-card" style={{ padding: "64px", textAlign: "center" }}>
+            <Calendar size={64} color="var(--border-subtle)" style={{ marginBottom: "20px", opacity: 0.5 }} />
+            <h3 style={{ marginBottom: "8px" }}>No Chronology Data</h3>
+            <p style={{ color: "var(--text-muted)", maxWidth: "340px", margin: "0 auto" }}>Use the AI Sync button to extract the case timeline from your documents.</p>
           </div>
         )}
 
         {upcoming.length > 0 && (
-          <div style={{ marginBottom: 32 }}>
-            <h3 style={{ fontSize: 13, fontWeight: 700, color: "#DC2626", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 16 }}>
-              🔴 Upcoming ({upcoming.length})
-            </h3>
-            {upcoming.map((e, i) => <EventRow key={i} event={e} upcoming={true} />)}
+          <div style={{ marginBottom: "48px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "24px" }}>
+              <div style={{ width: "32px", height: "32px", borderRadius: "50%", background: "#FEE2E2", color: "var(--danger)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Clock size={16} />
+              </div>
+              <h3 style={{ fontSize: "14px", fontWeight: "800", color: "var(--danger)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Upcoming Matters ({upcoming.length})</h3>
+            </div>
+            {upcoming.map((e, i) => <EventCard key={i} event={e} upcoming={true} />)}
           </div>
         )}
 
         {past.length > 0 && (
           <div>
-            <h3 style={{ fontSize: 13, fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 16 }}>
-              ✅ Past Events ({past.length})
-            </h3>
-            {[...past].reverse().map((e, i) => <EventRow key={i} event={e} upcoming={false} />)}
+            <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "24px" }}>
+              <div style={{ width: "32px", height: "32px", borderRadius: "50%", background: "var(--bg-main)", color: "var(--text-muted)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <CheckCircle2 size={16} />
+              </div>
+              <h3 style={{ fontSize: "14px", fontWeight: "800", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Completed History ({past.length})</h3>
+            </div>
+            {[...past].reverse().map((e, i) => <EventCard key={i} event={e} upcoming={false} />)}
           </div>
         )}
       </div>

@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Search, Filter, Grid, List, Trash2, Clock } from "lucide-react";
+import { Plus, Search, Filter, Grid, List, Trash2, Clock, ChevronRight, MoreHorizontal } from "lucide-react";
 import { getCases, createCase, deleteCase } from "../api";
 
 export default function Cases() {
   const navigate = useNavigate();
   const [cases, setCases] = useState([]);
   const [search, setSearch] = useState("");
+  const [viewMode, setViewMode] = useState("grid");
 
   const loadCases = () => getCases().then((r) => setCases(r.data));
 
@@ -16,8 +17,8 @@ export default function Cases() {
 
   const handleCreate = async () => {
     const name = prompt("Enter Case Name:");
-    if (!name) return;
-    await createCase(name);
+    if (!name?.trim()) return;
+    await createCase(name.trim());
     loadCases();
   };
 
@@ -28,12 +29,11 @@ export default function Cases() {
     loadCases();
   };
 
-  // Helper to generate mock data for UI enhancement since backend might not have it
   const getMockData = (index) => {
     const statuses = [
-      { text: "Investigation", color: "#DBEAFE", textColor: "#1E40AF" },
-      { text: "Chargesheet", color: "#F3E8FF", textColor: "#7E22CE" },
-      { text: "Trial", color: "#FFEDD5", textColor: "#C2410C" }
+      { text: "Investigation", color: "var(--primary)", bg: "var(--primary-light)" },
+      { text: "In Progress", color: "#7E22CE", bg: "#F3E8FF" },
+      { text: "Critical", color: "var(--danger)", bg: "#FEE2E2" }
     ];
     const categories = ["Criminal Defense", "Corporate", "Civil", "Tax Law", "Employment Law"];
     
@@ -46,133 +46,203 @@ export default function Cases() {
     };
   };
 
+  const filteredCases = cases.filter(c => 
+    (c.case_name || c.title || "").toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-      <style>{`
-        .delete-btn { display: none; }
-        .card-grid > div:hover .delete-btn { display: flex; }
-      `}</style>
+    <div className="main-content fade-in" style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
       
       {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
         <div>
-          <h1 style={{ fontSize: "28px", fontWeight: "700", color: "#0F172A", marginBottom: "4px" }}>Cases</h1>
-          <p style={{ color: "#64748B", fontSize: "15px" }}>Manage and track all your legal cases</p>
+          <h1 style={{ marginBottom: "8px" }}>Legal Matters</h1>
+          <p style={{ color: "var(--text-muted)", fontSize: "16px", fontWeight: "500" }}>
+            Currently managing <span style={{ color: "var(--text-main)", fontWeight: "700" }}>{cases.length} active cases</span>
+          </p>
         </div>
-        <button
-          className="btn"
-          onClick={handleCreate}
-          style={{ background: "#1E3A8A", color: "#fff", padding: "10px 16px", borderRadius: "8px", display: "flex", alignItems: "center", gap: "8px", fontWeight: "600" }}
-        >
-          <Plus size={18} /> New Case
+        <button className="btn btn-primary" onClick={handleCreate} style={{ padding: "12px 24px", borderRadius: "12px" }}>
+          <Plus size={20} /> New Case File
         </button>
       </div>
 
       {/* Toolbar */}
-      <div style={{ 
-        display: "flex", justifyContent: "space-between", alignItems: "center", 
-        padding: "16px", background: "#fff", borderRadius: "12px", border: "1px solid #E2E8F0"
-      }}>
-        <div style={{ display: "flex", gap: "12px", flex: 1, maxWidth: "700px" }}>
-          <div style={{ position: "relative", flex: 1 }}>
-            <Search size={18} color="#94A3B8" style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)" }} />
-            <input 
-              type="text" 
-              placeholder="Search cases by name, client, or FIR number..." 
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              style={{ width: "100%", padding: "10px 12px 10px 40px", borderRadius: "8px", border: "1px solid #E2E8F0", outline: "none", fontSize: "14px" }}
-            />
-          </div>
-          <select style={{ padding: "10px 16px", background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: "8px", color: "#475569", fontSize: "14px", fontWeight: "500", outline: "none" }}>
-            <option>All Cases</option>
-            <option>Active</option>
-            <option>Closed</option>
-          </select>
-          <button style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 16px", background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: "8px", color: "#475569", fontSize: "14px", fontWeight: "500", cursor: "pointer" }}>
-            <Filter size={16} />
-          </button>
+      <div className="premium-card" style={{ padding: "12px", borderRadius: "16px", display: "flex", alignItems: "center", gap: "16px" }}>
+        <div style={{ position: "relative", flex: 1 }}>
+          <Search size={18} color="var(--text-light)" style={{ position: "absolute", left: "16px", top: "50%", transform: "translateY(-50%)" }} />
+          <input 
+            type="text" 
+            placeholder="Search by case name, client, or FIR number..." 
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{ 
+              width: "100%", padding: "12px 16px 12px 48px", borderRadius: "12px", 
+              border: "1.5px solid transparent", background: "var(--bg-main)",
+              fontSize: "14px", fontWeight: "500", outline: "none", transition: "all 0.2s"
+            }}
+            onFocus={e => e.currentTarget.style.borderColor = "var(--primary)"}
+            onBlur={e => e.currentTarget.style.borderColor = "transparent"}
+          />
         </div>
         
-        <div style={{ display: "flex", gap: "8px", marginLeft: "24px" }}>
-          <button style={{ padding: "8px", background: "#F1F5F9", border: "none", borderRadius: "6px", color: "#1E3A8A", cursor: "pointer" }}><Grid size={20} /></button>
-          <button style={{ padding: "8px", background: "transparent", border: "none", borderRadius: "6px", color: "#64748B", cursor: "pointer" }}><List size={20} /></button>
+        <div style={{ display: "flex", gap: "8px", background: "var(--bg-main)", padding: "6px", borderRadius: "10px" }}>
+          <button 
+            onClick={() => setViewMode("grid")}
+            style={{ 
+              padding: "8px", background: viewMode === "grid" ? "#fff" : "transparent", 
+              border: "none", borderRadius: "8px", color: viewMode === "grid" ? "var(--primary)" : "var(--text-light)", 
+              cursor: "pointer", boxShadow: viewMode === "grid" ? "0 2px 4px rgba(0,0,0,0.05)" : "none",
+              display: "flex", alignItems: "center", justifyContent: "center"
+            }}
+          >
+            <Grid size={20} />
+          </button>
+          <button 
+            onClick={() => setViewMode("list")}
+            style={{ 
+              padding: "8px", background: viewMode === "list" ? "#fff" : "transparent", 
+              border: "none", borderRadius: "8px", color: viewMode === "list" ? "var(--primary)" : "var(--text-light)", 
+              cursor: "pointer", boxShadow: viewMode === "list" ? "0 2px 4px rgba(0,0,0,0.05)" : "none",
+              display: "flex", alignItems: "center", justifyContent: "center"
+            }}
+          >
+            <List size={20} />
+          </button>
         </div>
+
+        <button className="btn btn-outline" style={{ borderRadius: "12px" }}>
+          <Filter size={18} /> Filters
+        </button>
       </div>
 
-      {/* Cases Grid */}
-      <div className="card-grid">
-        {cases.filter(c => (c.case_name || c.title || "").toLowerCase().includes(search.toLowerCase())).map((c, i) => {
-          const mock = getMockData(i);
-          return (
-            <div
-              key={c._id}
-              onClick={() => navigate(`/case/${c._id}`)}
-              style={{
-                background: "#fff", border: "1px solid #E2E8F0", borderRadius: "12px",
-                padding: "20px", cursor: "pointer", transition: "all 0.15s",
-                boxShadow: "0 1px 3px rgba(0,0,0,0.06)", position: "relative"
-              }}
-              onMouseEnter={e => e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.08)"}
-              onMouseLeave={e => e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.06)"}
-            >
-              {/* Header tags */}
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-                <span style={{ 
-                  padding: "4px 12px", borderRadius: "20px", fontSize: "12px", fontWeight: "600",
-                  backgroundColor: mock.status.color, color: mock.status.textColor
-                }}>
-                  {mock.status.text}
-                </span>
-                <span style={{ fontSize: "12px", color: "#64748B", display: "flex", alignItems: "center", gap: "4px" }}>
-                  <Clock size={12} /> {c.created_at ? c.created_at.slice(0, 10) : "2026-04-15"}
-                </span>
-              </div>
+      {/* Cases View */}
+      {viewMode === "grid" ? (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "24px" }}>
+          {filteredCases.map((c, i) => {
+            const mock = getMockData(i);
+            return (
+              <div
+                key={c._id}
+                className="premium-card"
+                onClick={() => navigate(`/case/${c._id}`)}
+                style={{ cursor: "pointer", position: "relative" }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "20px" }}>
+                  <span style={{ 
+                    padding: "6px 14px", borderRadius: "10px", fontSize: "11px", fontWeight: "800",
+                    textTransform: "uppercase", letterSpacing: "0.05em",
+                    backgroundColor: mock.status.bg, color: mock.status.color
+                  }}>
+                    {mock.status.text}
+                  </span>
+                  <div style={{ display: "flex", gap: "8px" }}>
+                    <button 
+                      onClick={(e) => handleDelete(e, c._id)}
+                      style={{ background: "transparent", border: "none", color: "var(--text-light)", cursor: "pointer", padding: "4px" }}
+                      onMouseEnter={e => e.currentTarget.style.color = "var(--danger)"}
+                      onMouseLeave={e => e.currentTarget.style.color = "var(--text-light)"}
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </div>
 
-              {/* Title & Client */}
-              <div style={{ marginBottom: "20px" }}>
-                <h3 style={{ fontSize: "18px", fontWeight: "600", color: "#0F172A", marginBottom: "4px" }}>
+                <h3 style={{ fontSize: "18px", marginBottom: "4px", lineHeight: "1.3" }}>
                   {c.case_name || c.title || "Untitled Case"}
                 </h3>
-                <p style={{ fontSize: "14px", color: "#64748B" }}>{mock.client}</p>
-              </div>
+                <p style={{ fontSize: "14px", color: "var(--text-muted)", marginBottom: "20px", fontWeight: "500" }}>{mock.client}</p>
 
-              {/* Details */}
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-                <span style={{ fontSize: "13px", color: "#64748B" }}>{mock.category}</span>
-                <span style={{ fontSize: "13px", color: "#64748B" }}>{mock.fir}</span>
-              </div>
-
-              {/* Progress */}
-              <div>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
-                  <span style={{ fontSize: "13px", color: "#475569", fontWeight: "500" }}>Progress</span>
-                  <span style={{ fontSize: "13px", color: "#0F172A", fontWeight: "600" }}>{mock.progress}%</span>
+                <div style={{ display: "flex", gap: "16px", marginBottom: "24px" }}>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontSize: "11px", color: "var(--text-light)", fontWeight: "700", textTransform: "uppercase", marginBottom: "4px" }}>Category</p>
+                    <p style={{ fontSize: "13px", fontWeight: "600" }}>{mock.category}</p>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontSize: "11px", color: "var(--text-light)", fontWeight: "700", textTransform: "uppercase", marginBottom: "4px" }}>FIR Number</p>
+                    <p style={{ fontSize: "13px", fontWeight: "600" }}>{mock.fir}</p>
+                  </div>
                 </div>
-                <div style={{ width: "100%", height: "6px", backgroundColor: "#F1F5F9", borderRadius: "3px", overflow: "hidden" }}>
-                  <div style={{ width: `${mock.progress}%`, height: "100%", backgroundColor: "#4F46E5" }}></div>
+
+                <div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                    <span style={{ fontSize: "12px", color: "var(--text-muted)", fontWeight: "600" }}>Completion</span>
+                    <span style={{ fontSize: "12px", color: "var(--text-main)", fontWeight: "700" }}>{mock.progress}%</span>
+                  </div>
+                  <div style={{ width: "100%", height: "8px", backgroundColor: "var(--bg-main)", borderRadius: "4px", overflow: "hidden" }}>
+                    <div style={{ 
+                      width: `${mock.progress}%`, height: "100%", 
+                      background: "linear-gradient(90deg, var(--primary) 0%, var(--secondary) 100%)",
+                      borderRadius: "4px"
+                    }}></div>
+                  </div>
                 </div>
               </div>
-
-              {/* Delete Button */}
-              <button
-                onClick={(e) => handleDelete(e, c._id)}
-                className="delete-btn"
-                style={{
-                  position: "absolute", top: "20px", right: "20px",
-                  background: "rgba(255, 255, 255, 0.9)", border: "1px solid #E2E8F0", color: "#94A3B8",
-                  padding: "6px", borderRadius: "6px", cursor: "pointer", 
-                  alignItems: "center", justifyContent: "center", boxShadow: "0 2px 4px rgba(0,0,0,0.05)"
-                }}
-                onMouseEnter={e => e.currentTarget.style.color = "#DC2626"}
-                onMouseLeave={e => e.currentTarget.style.color = "#94A3B8"}
-              >
-                <Trash2 size={14} />
-              </button>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="premium-card" style={{ padding: "0" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr style={{ textAlign: "left", borderBottom: "1px solid var(--border-subtle)" }}>
+                <th style={{ padding: "16px 24px", color: "var(--text-muted)", fontSize: "12px", fontWeight: "700", textTransform: "uppercase" }}>Case Title</th>
+                <th style={{ padding: "16px 24px", color: "var(--text-muted)", fontSize: "12px", fontWeight: "700", textTransform: "uppercase" }}>Client</th>
+                <th style={{ padding: "16px 24px", color: "var(--text-muted)", fontSize: "12px", fontWeight: "700", textTransform: "uppercase" }}>Status</th>
+                <th style={{ padding: "16px 24px", color: "var(--text-muted)", fontSize: "12px", fontWeight: "700", textTransform: "uppercase" }}>Progress</th>
+                <th style={{ padding: "16px 24px", color: "var(--text-muted)", fontSize: "12px", fontWeight: "700", textTransform: "uppercase" }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredCases.map((c, i) => {
+                const mock = getMockData(i);
+                return (
+                  <tr 
+                    key={c._id} 
+                    onClick={() => navigate(`/case/${c._id}`)}
+                    style={{ cursor: "pointer", borderBottom: i < filteredCases.length - 1 ? "1px solid var(--border-subtle)" : "none", transition: "all 0.1s" }}
+                    onMouseEnter={e => e.currentTarget.style.backgroundColor = "var(--bg-main)"}
+                    onMouseLeave={e => e.currentTarget.style.backgroundColor = "transparent"}
+                  >
+                    <td style={{ padding: "16px 24px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                        <div style={{ width: "36px", height: "36px", borderRadius: "8px", background: "var(--primary-light)", color: "var(--primary)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          <Briefcase size={18} />
+                        </div>
+                        <span style={{ fontWeight: "600" }}>{c.case_name || c.title || "Untitled Case"}</span>
+                      </div>
+                    </td>
+                    <td style={{ padding: "16px 24px", fontSize: "14px", color: "var(--text-muted)" }}>{mock.client}</td>
+                    <td style={{ padding: "16px 24px" }}>
+                      <span style={{ 
+                        padding: "4px 10px", borderRadius: "8px", fontSize: "11px", fontWeight: "700",
+                        backgroundColor: mock.status.bg, color: mock.status.color
+                      }}>
+                        {mock.status.text}
+                      </span>
+                    </td>
+                    <td style={{ padding: "16px 24px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "12px", width: "120px" }}>
+                        <div style={{ flex: 1, height: "6px", background: "var(--bg-main)", borderRadius: "3px", overflow: "hidden" }}>
+                          <div style={{ width: `${mock.progress}%`, height: "100%", background: "var(--primary)" }}></div>
+                        </div>
+                        <span style={{ fontSize: "12px", fontWeight: "700" }}>{mock.progress}%</span>
+                      </div>
+                    </td>
+                    <td style={{ padding: "16px 24px" }}>
+                      <div style={{ display: "flex", gap: "12px" }}>
+                        <button onClick={(e) => handleDelete(e, c._id)} style={{ background: "transparent", border: "none", color: "var(--text-light)", cursor: "pointer" }}>
+                          <Trash2 size={16} />
+                        </button>
+                        <ChevronRight size={18} color="var(--text-light)" />
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

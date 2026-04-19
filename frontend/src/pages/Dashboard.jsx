@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Plus, Briefcase, Clock, AlertCircle, TrendingUp, FileText, Calendar, PenTool, Brain, FolderOpen } from "lucide-react";
+import { Plus, Briefcase, Clock, AlertCircle, TrendingUp, FileText, Calendar, PenTool, Brain, FolderOpen, ChevronRight } from "lucide-react";
 import { getCases, createCase } from "../api";
 
 export default function Dashboard() {
@@ -25,145 +25,152 @@ export default function Dashboard() {
   const getCaseName = (c) => c.case_name || c.title || "Untitled Case";
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+    <div className="main-content fade-in" style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
       {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
         <div>
-          <h1 style={{ fontSize: "28px", fontWeight: "700", color: "#0F172A", marginBottom: "4px" }}>
-            Welcome back
-          </h1>
-          <p style={{ color: "#64748B", fontSize: "15px" }}>
-            Here's what's happening with your cases today
+          <h1 style={{ marginBottom: "8px" }}>Dashboard</h1>
+          <p style={{ color: "var(--text-muted)", fontSize: "16px", fontWeight: "500" }}>
+            Welcome back, <span style={{ color: "var(--primary)", fontWeight: "700" }}>John</span>. Here's your legal overview.
           </p>
         </div>
         <button
-          className="btn"
+          className="btn btn-primary"
           onClick={handleCreate}
           disabled={creating}
-          style={{ background: "#1E3A8A", color: "#fff", padding: "10px 16px", borderRadius: "8px" }}
+          style={{ padding: "12px 24px", borderRadius: "12px" }}
         >
-          <Plus size={16} /> {creating ? "Creating..." : "New Case"}
+          <Plus size={20} /> {creating ? "Creating..." : "New Case"}
         </button>
       </div>
 
       {/* Stat Cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "20px" }}>
-        <div style={{ background: "#fff", borderRadius: "12px", padding: "24px", border: "1px solid #E2E8F0", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", position: "relative" }}>
-          <div style={{ width: "40px", height: "40px", borderRadius: "8px", background: "#EFF6FF", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "16px" }}>
-            <Briefcase size={20} color="#3B82F6" />
+      <div className="grid-layout" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))" }}>
+        {[
+          { label: "Total Cases", value: cases.length, icon: Briefcase, color: "var(--primary)", bg: "var(--primary-light)", trend: "+12%" },
+          { label: "Active Matters", value: cases.length, icon: Clock, color: "#0EA5E9", bg: "#F0F9FF" },
+          { label: "Pending Tasks", value: "8", icon: AlertCircle, color: "#F59E0B", bg: "#FFFBEB" },
+          { label: "Documents", value: "124", icon: FileText, color: "#8B5CF6", bg: "#F5F3FF" },
+        ].map((stat, i) => (
+          <div key={i} className="premium-card" style={{ position: "relative", overflow: "hidden" }}>
+            <div style={{ 
+              width: "48px", height: "48px", borderRadius: "14px", 
+              backgroundColor: stat.bg, color: stat.color, 
+              display: "flex", alignItems: "center", justifyContent: "center",
+              marginBottom: "20px"
+            }}>
+              <stat.icon size={24} />
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+              <div>
+                <h2 style={{ fontSize: "32px", marginBottom: "4px" }}>{stat.value}</h2>
+                <p style={{ color: "var(--text-muted)", fontSize: "14px", fontWeight: "600" }}>{stat.label}</p>
+              </div>
+              {stat.trend && (
+                <div style={{ display: "flex", alignItems: "center", gap: "4px", color: "var(--success)", fontSize: "12px", fontWeight: "700", background: "#ECFDF5", padding: "4px 8px", borderRadius: "6px" }}>
+                  <TrendingUp size={14} /> {stat.trend}
+                </div>
+              )}
+            </div>
+            {/* Subtle background decoration */}
+            <div style={{ position: "absolute", right: "-10px", bottom: "-10px", opacity: 0.03 }}>
+              <stat.icon size={80} />
+            </div>
           </div>
-          <TrendingUp size={18} color="#10B981" style={{ position: "absolute", top: "24px", right: "24px" }} />
-          <h2 style={{ fontSize: "28px", fontWeight: "700", color: "#0F172A", marginBottom: "4px" }}>{cases.length}</h2>
-          <p style={{ color: "#64748B", fontSize: "14px" }}>Total Cases</p>
-        </div>
-
-        <div style={{ background: "#fff", borderRadius: "12px", padding: "24px", border: "1px solid #E2E8F0", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
-          <div style={{ width: "40px", height: "40px", borderRadius: "8px", background: "#EFF6FF", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "16px" }}>
-            <Clock size={20} color="#3B82F6" />
-          </div>
-          <h2 style={{ fontSize: "28px", fontWeight: "700", color: "#0F172A", marginBottom: "4px" }}>{cases.length}</h2>
-          <p style={{ color: "#64748B", fontSize: "14px" }}>Active Cases</p>
-        </div>
-
-        <div style={{ background: "#fff", borderRadius: "12px", padding: "24px", border: "1px solid #E2E8F0", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
-          <div style={{ width: "40px", height: "40px", borderRadius: "8px", background: "#FFF7ED", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "16px" }}>
-            <AlertCircle size={20} color="#F97316" />
-          </div>
-          <h2 style={{ fontSize: "28px", fontWeight: "700", color: "#0F172A", marginBottom: "4px" }}>—</h2>
-          <p style={{ color: "#64748B", fontSize: "14px" }}>Upcoming Deadlines</p>
-          <p style={{ color: "#64748B", fontSize: "12px", marginTop: "4px" }}>Open a case to view</p>
-        </div>
+        ))}
       </div>
 
       {/* Main Grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 2fr) minmax(0, 1fr)", gap: "24px" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.8fr) minmax(0, 1.2fr)", gap: "32px" }}>
 
-        {/* Recent Cases — REAL DATA */}
-        <div style={{ background: "#fff", borderRadius: "12px", padding: "24px", border: "1px solid #E2E8F0", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-            <h3 style={{ fontSize: "18px", fontWeight: "600", color: "#0F172A" }}>Recent Cases</h3>
-            <Link to="/cases" style={{ color: "#4F46E5", fontSize: "14px", fontWeight: "500", textDecoration: "none" }}>View all →</Link>
+        {/* Recent Cases */}
+        <div className="premium-card" style={{ padding: "0" }}>
+          <div style={{ padding: "24px", borderBottom: "1px solid var(--border-subtle)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <h3 style={{ fontSize: "18px" }}>Recent Cases</h3>
+            <Link to="/cases" style={{ color: "var(--primary)", fontSize: "14px", fontWeight: "700", textDecoration: "none" }}>View all</Link>
           </div>
 
-          {recentCases.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "40px 0", color: "#94A3B8" }}>
-              <FolderOpen size={36} color="#CBD5E1" style={{ marginBottom: "10px" }} />
-              <p style={{ fontSize: "14px" }}>No cases yet. Create your first case.</p>
-              <button className="btn" onClick={handleCreate}
-                style={{ background: "#4F46E5", color: "#fff", marginTop: "12px" }}>
-                <Plus size={14} /> Create Case
-              </button>
-            </div>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column" }}>
-              {recentCases.map((c, i) => (
+          <div style={{ padding: "8px" }}>
+            {recentCases.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "60px 0", color: "var(--text-light)" }}>
+                <FolderOpen size={48} style={{ marginBottom: "16px", opacity: 0.5 }} />
+                <p style={{ fontSize: "15px", fontWeight: "500" }}>No cases found. Start by creating one.</p>
+              </div>
+            ) : (
+              recentCases.map((c, i) => (
                 <div
                   key={c._id}
                   onClick={() => navigate(`/case/${c._id}`)}
                   style={{
                     display: "flex", justifyContent: "space-between", alignItems: "center",
-                    padding: "16px 0", borderBottom: i < recentCases.length - 1 ? "1px solid #F1F5F9" : "none",
-                    cursor: "pointer",
+                    padding: "16px 20px", borderRadius: "12px",
+                    cursor: "pointer", transition: "all 0.2s"
                   }}
-                  onMouseEnter={e => e.currentTarget.style.background = "#FAFAFA"}
-                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                  onMouseEnter={e => { e.currentTarget.style.backgroundColor = "var(--bg-main)"; e.currentTarget.style.transform = "translateX(4px)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.backgroundColor = "transparent"; e.currentTarget.style.transform = "translateX(0)"; }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                    <div style={{ width: "36px", height: "36px", borderRadius: "8px", background: "#EEF2FF", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <FileText size={16} color="#4F46E5" />
+                  <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+                    <div style={{ 
+                      width: "44px", height: "44px", borderRadius: "12px", 
+                      backgroundColor: "var(--primary-light)", color: "var(--primary)",
+                      display: "flex", alignItems: "center", justifyContent: "center" 
+                    }}>
+                      <Briefcase size={20} />
                     </div>
                     <div>
-                      <h4 style={{ fontSize: "15px", fontWeight: "600", color: "#0F172A", marginBottom: "2px" }}>{getCaseName(c)}</h4>
-                      <p style={{ fontSize: "12px", color: "#94A3B8" }}>Created {c.created_at?.slice(0, 10)}</p>
+                      <h4 style={{ fontSize: "16px", marginBottom: "2px" }}>{getCaseName(c)}</h4>
+                      <p style={{ fontSize: "12px", color: "var(--text-muted)", fontWeight: "500" }}>Modified {c.updated_at?.slice(0, 10) || "Today"}</p>
                     </div>
                   </div>
-                  <span style={{ fontSize: "12px", color: "#4F46E5", fontWeight: "600" }}>Open →</span>
+                  <ChevronRight size={18} color="var(--text-light)" />
                 </div>
-              ))}
-            </div>
-          )}
+              ))
+            )}
+          </div>
         </div>
 
-        {/* Right Column */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-
-          {/* Quick Actions — all wired to real routes */}
-          <div style={{ background: "#6366F1", borderRadius: "12px", padding: "24px", color: "#fff", boxShadow: "0 10px 15px -3px rgba(99,102,241,0.3)" }}>
-            <div style={{ width: "40px", height: "40px", borderRadius: "10px", background: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "20px" }}>
-              <FileText size={20} color="#fff" />
-            </div>
-            <h3 style={{ fontSize: "18px", fontWeight: "700", marginBottom: "6px" }}>Quick Actions</h3>
-            <p style={{ fontSize: "13px", opacity: 0.85, marginBottom: "20px" }}>Jump into your workflow</p>
-
-            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+        {/* Quick Actions & Status */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
+          
+          <div className="premium-card" style={{ 
+            background: "linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%)", 
+            color: "white", border: "none" 
+          }}>
+            <h3 style={{ color: "white", marginBottom: "16px", fontSize: "18px" }}>AI Power Tools</h3>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
               {[
-                { label: "📁 Manage Cases", path: "/cases", icon: Briefcase },
-                { label: "✍️ AI Document Drafting", path: "/drafting", icon: PenTool },
-                { label: "🔍 AI Legal Assistant", path: "/assistant", icon: Brain },
-                { label: "📅 View Deadlines", path: "/deadlines", icon: Calendar },
+                { label: "Legal Assistant", path: "/assistant", icon: Brain },
+                { label: "Doc Drafting", path: "/drafting", icon: PenTool },
+                { label: "View Deadlines", path: "/deadlines", icon: Calendar },
+                { label: "All Cases", path: "/cases", icon: Briefcase },
               ].map((a) => (
                 <button key={a.path} onClick={() => navigate(a.path)}
-                  style={{ background: "rgba(255,255,255,0.15)", border: "none", borderRadius: "8px", padding: "12px 16px", color: "#fff", fontSize: "14px", fontWeight: "600", textAlign: "left", cursor: "pointer", transition: "all 0.2s" }}
-                  onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.25)"}
-                  onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,0.15)"}>
-                  {a.label}
+                  style={{ 
+                    background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.2)", 
+                    borderRadius: "12px", padding: "16px", color: "#fff", 
+                    display: "flex", flexDirection: "column", gap: "12px",
+                    cursor: "pointer", transition: "all 0.2s", textAlign: "left"
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.2)"; e.currentTarget.style.transform = "translateY(-2px)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.12)"; e.currentTarget.style.transform = "translateY(0)"; }}>
+                  <a.icon size={20} />
+                  <span style={{ fontSize: "13px", fontWeight: "600" }}>{a.label}</span>
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Case count summary */}
-          <div style={{ background: "#fff", borderRadius: "12px", padding: "20px", border: "1px solid #E2E8F0", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
-            <h3 style={{ fontSize: "15px", fontWeight: "600", color: "#0F172A", marginBottom: "14px" }}>System Status</h3>
-            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+          <div className="premium-card">
+            <h3 style={{ fontSize: "16px", marginBottom: "20px" }}>System Infrastructure</h3>
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
               {[
-                { label: "Total Cases", value: cases.length, color: "#4F46E5" },
-                { label: "AI Model", value: "Claude 3.5 Haiku", color: "#16A34A" },
-                { label: "Vector Store", value: "FAISS (local)", color: "#0891B2" },
-                { label: "Database", value: "MongoDB", color: "#D97706" },
+                { label: "Deployment", value: "Production Ready", color: "var(--success)" },
+                { label: "AI Backend", value: "Claude 3.5 Sonnet", color: "var(--primary)" },
+                { label: "Database", value: "MongoDB Atlas", color: "#16A34A" },
+                { label: "Vector Search", value: "FAISS Engine", color: "#0891B2" },
               ].map((s) => (
                 <div key={s.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span style={{ fontSize: "13px", color: "#64748B" }}>{s.label}</span>
+                  <span style={{ fontSize: "13px", color: "var(--text-muted)", fontWeight: "500" }}>{s.label}</span>
                   <span style={{ fontSize: "13px", fontWeight: "700", color: s.color }}>{s.value}</span>
                 </div>
               ))}

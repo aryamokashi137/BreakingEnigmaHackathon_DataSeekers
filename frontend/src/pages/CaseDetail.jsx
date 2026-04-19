@@ -3,14 +3,16 @@ import { useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft, Upload, Trash2, FileText, Brain,
   Calendar, Send, Loader2, Scale, Trash, RotateCcw,
+  ChevronRight, File, MoreVertical, Plus
 } from "lucide-react";
 import {
   getDocuments, uploadDocument, deleteDocument,
   getChatHistory, sendMessage, summarizeDocument, clearChat,
 } from "../api";
 import { intentMeta } from "../theme";
+import MarkdownRenderer from "../components/MarkdownRenderer";
 
-const Spinner = () => <Loader2 size={14} style={{ animation: "spin 1s linear infinite" }} />;
+const Spinner = () => <Loader2 size={16} style={{ animation: "spin 1s linear infinite" }} />;
 
 export default function CaseDetail() {
   const { caseId } = useParams();
@@ -42,6 +44,7 @@ export default function CaseDetail() {
   };
 
   const handleDelete = async (docId) => {
+    if (!window.confirm("Delete this document?")) return;
     await deleteDocument(docId);
     loadDocs();
   };
@@ -84,148 +87,167 @@ export default function CaseDetail() {
   };
 
   return (
-    <div style={{ display: "flex", height: "100vh", background: "#F8FAFC", overflow: "hidden" }}>
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-
-      {/* ── Sidebar ── */}
+    <div style={{ display: "flex", height: "100vh", background: "var(--bg-main)", overflow: "hidden" }}>
+      
+      {/* ── Case Sidebar ── */}
       <aside style={{
-        width: 260, background: "#fff", borderRight: "1px solid #E2E8F0",
+        width: 320, background: "var(--bg-sidebar)", borderRight: "1px solid var(--border-subtle)",
         display: "flex", flexDirection: "column", flexShrink: 0,
+        boxShadow: "4px 0 10px rgba(0,0,0,0.02)"
       }}>
-        {/* Logo */}
-        <div style={{ padding: "16px 20px", borderBottom: "1px solid #F1F5F9", display: "flex", alignItems: "center", gap: 8 }}>
-          <Scale size={18} color="#4F46E5" />
-          <span style={{ fontWeight: 700, fontSize: 15, color: "#0F172A" }}>LegalAI</span>
-        </div>
-
-        {/* Back */}
-        <div style={{ padding: "12px 16px", borderBottom: "1px solid #F1F5F9" }}>
-          <button className="btn" onClick={() => navigate("/cases")}
-            style={{ background: "#F1F5F9", color: "#475569", width: "100%", justifyContent: "flex-start" }}>
-            <ArrowLeft size={14} /> All Cases
+        {/* Logo & Header */}
+        <div style={{ padding: "24px", borderBottom: "1px solid var(--border-subtle)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: "var(--primary)", display: "flex", alignItems: "center", justifyContent: "center", color: "white" }}>
+              <Scale size={20} />
+            </div>
+            <span style={{ fontWeight: 800, fontSize: 18, color: "var(--text-main)", letterSpacing: "-0.02em" }}>LegalFlow AI</span>
+          </div>
+          <button className="btn btn-outline" onClick={() => navigate("/cases")}
+            style={{ width: "100%", justifyContent: "center", gap: 8, borderRadius: 10, padding: "8px 16px" }}>
+            <ArrowLeft size={16} /> Back to Library
           </button>
         </div>
 
-        {/* Nav Actions */}
-        <div style={{ padding: "12px 16px", borderBottom: "1px solid #F1F5F9", display: "flex", flexDirection: "column", gap: 8 }}>
-          <button className="btn" onClick={() => navigate(`/case/${caseId}/analysis`)}
-            style={{ background: "#DCFCE7", color: "#16A34A", justifyContent: "flex-start" }}>
-            <Brain size={14} /> Analyze Case
+        {/* Navigation Actions */}
+        <div style={{ padding: "24px", borderBottom: "1px solid var(--border-subtle)", display: "flex", flexDirection: "column", gap: 12 }}>
+          <button className="btn btn-secondary" onClick={() => navigate(`/case/${caseId}/analysis`)}
+            style={{ justifyContent: "flex-start", gap: 12, padding: "12px 16px", borderRadius: 12 }}>
+            <Brain size={18} /> 
+            <div style={{ textAlign: "left" }}>
+              <div style={{ fontSize: 13, fontWeight: 700 }}>Intelligent Analysis</div>
+              <div style={{ fontSize: 10, opacity: 0.7 }}>Strengths, Risks & Strategy</div>
+            </div>
           </button>
-          <button className="btn" onClick={() => navigate(`/case/${caseId}/timeline`)}
-            style={{ background: "#E0F2FE", color: "#0891B2", justifyContent: "flex-start" }}>
-            <Calendar size={14} /> Timeline
+          <button className="btn btn-secondary" onClick={() => navigate(`/case/${caseId}/timeline`)}
+            style={{ justifyContent: "flex-start", gap: 12, padding: "12px 16px", borderRadius: 12, background: "#E0F2FE", color: "#0369A1" }}>
+            <Calendar size={18} /> 
+            <div style={{ textAlign: "left" }}>
+              <div style={{ fontSize: 13, fontWeight: 700 }}>Case Timeline</div>
+              <div style={{ fontSize: 10, opacity: 0.7 }}>Events & Deadlines</div>
+            </div>
           </button>
         </div>
 
-        {/* Documents */}
-        <div style={{ flex: 1, overflowY: "auto", padding: "16px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-              Documents
-            </span>
+        {/* Documents Section */}
+        <div style={{ flex: 1, overflowY: "auto", padding: "24px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+            <h4 style={{ fontSize: 12, fontWeight: 800, color: "var(--text-light)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              Attachments ({docs.length})
+            </h4>
             <button
-              className="btn"
+              className="btn btn-primary"
               onClick={() => fileRef.current?.click()}
               disabled={uploading}
-              style={{ background: "#EEF2FF", color: "#4F46E5", padding: "4px 8px", fontSize: 11 }}
+              style={{ width: 32, height: 32, padding: 0, borderRadius: 8 }}
             >
-              {uploading ? <Spinner /> : <Upload size={12} />}
-              {uploading ? "Uploading..." : "Upload"}
+              {uploading ? <Spinner /> : <Plus size={18} />}
             </button>
             <input ref={fileRef} type="file" accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg"
               onChange={handleUpload} style={{ display: "none" }} />
           </div>
 
           {docs.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "24px 0" }}>
-              <FileText size={28} color="#CBD5E1" style={{ marginBottom: 8 }} />
-              <p style={{ fontSize: 12, color: "#94A3B8" }}>No documents yet</p>
+            <div style={{ textAlign: "center", padding: "40px 20px", border: "1.5px dashed var(--border-subtle)", borderRadius: 12 }}>
+              <FileText size={32} color="var(--text-light)" style={{ marginBottom: 12, opacity: 0.5 }} />
+              <p style={{ fontSize: 13, color: "var(--text-muted)", fontWeight: 500 }}>Upload case files to begin RAG analysis</p>
             </div>
           ) : (
-            docs.map((d) => (
-              <div key={d._id} style={{
-                background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 8,
-                padding: "10px 12px", marginBottom: 8,
-              }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
-                  <span style={{ fontSize: 12, fontWeight: 500, color: "#374151", wordBreak: "break-word", flex: 1, marginRight: 6 }}>
-                    📄 {d.filename}
-                  </span>
-                  <button className="btn" onClick={() => handleDelete(d._id)}
-                    style={{ background: "transparent", color: "#94A3B8", padding: "2px 4px", flexShrink: 0 }}>
-                    <Trash2 size={12} />
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {docs.map((d) => (
+                <div key={d._id} className="premium-card" style={{ padding: "14px", borderRadius: 12 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+                    <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                      <File size={16} color="var(--text-light)" />
+                      <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-main)", overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical" }}>
+                        {d.filename}
+                      </span>
+                    </div>
+                    <button className="btn" onClick={() => handleDelete(d._id)}
+                      style={{ background: "transparent", color: "var(--danger)", padding: 4 }}>
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                  <button
+                    className="btn btn-secondary"
+                    onClick={() => handleSummarize(d.filename)}
+                    disabled={summarizing === d.filename}
+                    style={{ width: "100%", fontSize: 11, fontWeight: 700, padding: "6px 10px", borderRadius: 8 }}
+                  >
+                    {summarizing === d.filename ? <><Spinner /> Processing...</> : "AI Summarize"}
                   </button>
                 </div>
-                <button
-                  className="btn"
-                  onClick={() => handleSummarize(d.filename)}
-                  disabled={summarizing === d.filename}
-                  style={{
-                    background: summarizing === d.filename ? "#F3E8FF" : "#7C3AED",
-                    color: summarizing === d.filename ? "#7C3AED" : "#fff",
-                    width: "100%", justifyContent: "center", fontSize: 11, padding: "5px 8px",
-                  }}
-                >
-                  {summarizing === d.filename ? <><Spinner /> Summarizing...</> : "📄 Summarize"}
-                </button>
-              </div>
-            ))
+              ))}
+            </div>
           )}
         </div>
       </aside>
 
-      {/* ── Chat Panel ── */}
-      <main style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      {/* ── Main Chat Interface ── */}
+      <main style={{ flex: 1, display: "flex", flexDirection: "column", background: "white" }}>
+        
         {/* Chat Header */}
-        <div style={{
-          background: "#fff", borderBottom: "1px solid #E2E8F0",
-          padding: "0 24px", height: 56, display: "flex", alignItems: "center",
-          justifyContent: "space-between",
+        <header style={{
+          background: "rgba(255, 255, 255, 0.8)", backdropFilter: "blur(10px)",
+          borderBottom: "1px solid var(--border-subtle)",
+          padding: "0 32px", height: 72, display: "flex", alignItems: "center",
+          justifyContent: "space-between", position: "sticky", top: 0, zIndex: 10
         }}>
           <div>
-            <span style={{ fontWeight: 600, fontSize: 15 }}>💬 AI Legal Assistant</span>
-            <span style={{ fontSize: 12, color: "#94A3B8", marginLeft: 10 }}>
-              Ask about documents · Summarize · Legal research
-            </span>
+            <h2 style={{ fontSize: 18, marginBottom: 2 }}>Case Intelligence Assistant</h2>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--success)" }}></div>
+              <span style={{ fontSize: 12, color: "var(--text-muted)", fontWeight: 500 }}>
+                Powered by RAG Context Engine
+              </span>
+            </div>
           </div>
-          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-            {["📚 Doc Q&A", "📄 Summarize", "🔍 Research"].map((t) => (
-              <span key={t} style={{
-                fontSize: 11, padding: "3px 8px", borderRadius: 20,
-                background: "#F1F5F9", color: "#64748B", fontWeight: 500,
-              }}>{t}</span>
-            ))}
-            <div style={{ width: 1, height: 20, background: "#E2E8F0", margin: "0 4px" }} />
-            <button className="btn" onClick={handleNewChat}
-              title="New Chat (clears view only)"
-              style={{ background: "#EEF2FF", color: "#4F46E5", padding: "5px 10px", fontSize: 12 }}>
-              <RotateCcw size={13} /> New Chat
+          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+            <div style={{ display: "flex", gap: 8, marginRight: 12 }}>
+              {["Context-Aware", "Legal-Specific"].map((t) => (
+                <span key={t} style={{
+                  fontSize: 10, padding: "4px 10px", borderRadius: 20,
+                  background: "var(--primary-light)", color: "var(--primary)", fontWeight: 700,
+                  textTransform: "uppercase", letterSpacing: "0.02em"
+                }}>{t}</span>
+              ))}
+            </div>
+            <button className="btn btn-outline" onClick={handleNewChat} style={{ borderRadius: 10, padding: "8px 16px", fontSize: 13 }}>
+              <RotateCcw size={14} /> Reset
             </button>
-            <button className="btn" onClick={handleClearChat}
-              title="Clear chat history from database"
-              style={{ background: "#FEF2F2", color: "#DC2626", padding: "5px 10px", fontSize: 12 }}>
-              <Trash size={13} /> Clear History
+            <button className="btn btn-outline" onClick={handleClearChat} style={{ borderRadius: 10, padding: "8px 16px", fontSize: 13, color: "var(--danger)", borderColor: "transparent" }}>
+              <Trash size={14} /> Clear History
             </button>
           </div>
-        </div>
+        </header>
 
-        {/* Messages */}
-        <div style={{ flex: 1, overflowY: "auto", padding: "24px", display: "flex", flexDirection: "column", gap: 16 }}>
+        {/* Message Thread */}
+        <div className="chat-messages-area" style={{ flex: 1, padding: "32px", background: "var(--bg-main)" }}>
           {messages.length === 0 && (
-            <div style={{ textAlign: "center", marginTop: 60 }}>
-              <Scale size={40} color="#CBD5E1" style={{ marginBottom: 12 }} />
-              <p style={{ color: "#94A3B8", fontSize: 15, marginBottom: 6 }}>Ask anything about this case</p>
-              <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap", marginTop: 16 }}>
+            <div style={{ maxWidth: 600, margin: "100px auto 0", textAlign: "center" }}>
+              <div style={{ width: 80, height: 80, borderRadius: 24, background: "white", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--primary)", margin: "0 auto 24px", boxShadow: "var(--shadow-lg)" }}>
+                <Brain size={40} />
+              </div>
+              <h2 style={{ fontSize: 24, marginBottom: 12 }}>How can I help with this case?</h2>
+              <p style={{ color: "var(--text-muted)", fontSize: 16, marginBottom: 32 }}>Ask specific questions about uploaded documents or request legal interpretations.</p>
+              
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 {[
-                  "What is this document about?",
-                  "Who are the parties involved?",
-                  "Summarize this document",
-                  "Explain IPC section 420",
+                  "What are the core allegations?",
+                  "Identify potential liabilities",
+                  "Summarize key evidence",
+                  "Relevant case precedents"
                 ].map((q) => (
-                  <button key={q} className="btn"
+                  <button key={q} 
                     onClick={() => setInput(q)}
-                    style={{ background: "#F1F5F9", color: "#475569", fontSize: 12, padding: "6px 12px" }}>
+                    style={{ 
+                      padding: "16px", background: "white", border: "1px solid var(--border-subtle)", 
+                      borderRadius: 12, fontSize: 14, fontWeight: 600, color: "var(--text-main)",
+                      textAlign: "left", cursor: "pointer", transition: "all 0.2s"
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.borderColor = "var(--primary)"}
+                    onMouseLeave={e => e.currentTarget.style.borderColor = "var(--border-subtle)"}
+                  >
                     {q}
                   </button>
                 ))}
@@ -233,75 +255,84 @@ export default function CaseDetail() {
             </div>
           )}
 
-          {messages.map((m, i) => (
-            <div key={i} style={{ display: "flex", justifyContent: m.role === "user" ? "flex-end" : "flex-start" }}>
-              <div style={{ maxWidth: "72%" }}>
-                {m.role === "assistant" && m.intent && (() => {
-                  const meta = intentMeta[m.intent] || intentMeta.document_qa;
-                  return (
-                    <span style={{
-                      display: "inline-block", fontSize: 10, fontWeight: 700,
-                      color: meta.color, background: meta.bg,
-                      padding: "2px 8px", borderRadius: 20, marginBottom: 6,
-                      textTransform: "uppercase", letterSpacing: "0.04em",
+          <div style={{ maxWidth: 900, margin: "0 auto", width: "100%", display: "flex", flexDirection: "column" }}>
+            {messages.map((m, i) => (
+              <div key={i} className={`chat-row ${m.role === "user" ? "user" : "ai"}`}>
+                <div className="chat-avatar">{m.role === "user" ? "U" : "AI"}</div>
+                <div className="chat-bubble-wrap">
+                  {m.role === "assistant" && m.intent && (
+                    <span className="chat-intent-badge" style={{ 
+                      color: intentMeta[m.intent]?.color || "var(--primary)", 
+                      background: intentMeta[m.intent]?.bg || "var(--primary-light)",
+                      marginBottom: 4
                     }}>
-                      {meta.label}
+                      {intentMeta[m.intent]?.label || "Response"}
                     </span>
-                  );
-                })()}
-                <div style={{
-                  padding: "12px 16px", borderRadius: m.role === "user" ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
-                  background: m.role === "user" ? "#4F46E5" : "#fff",
-                  color: m.role === "user" ? "#fff" : "#0F172A",
-                  border: m.role === "user" ? "none" : "1px solid #E2E8F0",
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
-                  fontSize: 14, lineHeight: 1.6, whiteSpace: "pre-wrap",
-                }}>
-                  {m.message}
+                  )}
+                  <div className={m.role === "user" ? "chat-bubble-user" : "chat-bubble-ai"} style={{ 
+                    padding: "16px 20px", borderRadius: 16, 
+                    boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)",
+                    fontSize: 15
+                  }}>
+                    {m.role === "assistant" ? <MarkdownRenderer content={m.message} /> : m.message}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
 
-          {loading && (
-            <div style={{ display: "flex", justifyContent: "flex-start" }}>
-              <div style={{
-                padding: "12px 16px", borderRadius: "18px 18px 18px 4px",
-                background: "#fff", border: "1px solid #E2E8F0",
-                display: "flex", alignItems: "center", gap: 8, color: "#94A3B8", fontSize: 13,
-              }}>
-                <Loader2 size={14} style={{ animation: "spin 1s linear infinite" }} />
-                Thinking...
+            {loading && (
+              <div className="chat-row ai">
+                <div className="chat-avatar" style={{ background: "var(--primary)", color: "white" }}>AI</div>
+                <div style={{ background: "white", padding: "16px 20px", borderRadius: 16, border: "1px solid var(--border-subtle)", display: "flex", alignItems: "center", gap: 12 }}>
+                  <Spinner />
+                  <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text-muted)" }}>Analyzing document context...</span>
+                </div>
               </div>
-            </div>
-          )}
-          <div ref={bottomRef} />
+            )}
+            <div ref={bottomRef} style={{ height: 20 }} />
+          </div>
         </div>
 
-        {/* Input */}
-        <div style={{
-          background: "#fff", borderTop: "1px solid #E2E8F0",
-          padding: "16px 24px", display: "flex", gap: 10, alignItems: "flex-end",
+        {/* Input Dock */}
+        <div style={{ 
+          padding: "24px 32px 40px", background: "var(--bg-main)",
+          borderTop: "1px solid var(--border-subtle)"
         }}>
-          <input
-            style={{
-              flex: 1, padding: "12px 16px", border: "1px solid #E2E8F0",
-              borderRadius: 12, fontSize: 14, background: "#F8FAFC",
-              transition: "border-color 0.15s",
-            }}
-            placeholder="Ask anything about your case..."
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
-          />
-          <button
-            className="btn"
-            onClick={handleSend}
-            disabled={loading || !input.trim()}
-            style={{ background: "#4F46E5", color: "#fff", padding: "12px 18px", borderRadius: 12 }}
-          >
-            {loading ? <Loader2 size={16} style={{ animation: "spin 1s linear infinite" }} /> : <Send size={16} />}
-          </button>
+          <div style={{ 
+            maxWidth: 900, margin: "0 auto", position: "relative",
+            background: "white", borderRadius: 16, border: "1.5px solid var(--border-subtle)",
+            boxShadow: "0 10px 15px -3px rgba(0,0,0,0.05)",
+            padding: "8px"
+          }}>
+            <textarea
+              placeholder="Ask a question about this case..."
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), handleSend())}
+              style={{ 
+                width: "100%", padding: "12px 16px", border: "none", outline: "none", 
+                resize: "none", fontSize: 15, color: "var(--text-main)",
+                minHeight: 52, maxHeight: 200
+              }}
+            />
+            <div style={{ display: "flex", justifyContent: "flex-end", padding: "4px" }}>
+              <button
+                onClick={handleSend}
+                disabled={loading || !input.trim()}
+                style={{ 
+                  width: 40, height: 40, borderRadius: 10, background: "var(--primary)", 
+                  color: "white", border: "none", display: "flex", alignItems: "center", 
+                  justifyContent: "center", cursor: "pointer", transition: "all 0.2s",
+                  opacity: (loading || !input.trim()) ? 0.5 : 1
+                }}
+              >
+                {loading ? <Spinner /> : <Send size={20} />}
+              </button>
+            </div>
+          </div>
+          <p style={{ textAlign: "center", fontSize: 11, color: "var(--text-light)", marginTop: 12, fontWeight: 500 }}>
+            AI-generated content may require professional legal verification.
+          </p>
         </div>
       </main>
     </div>

@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Zap, Copy, Download, Check, Loader2, Scale, FileText } from "lucide-react";
+import { ArrowLeft, Zap, Copy, Download, Check, Loader2, Scale, FileText, Settings, ChevronRight } from "lucide-react";
 import { getDraftTypes, generateDraft } from "../api";
 
-const Spinner = () => <Loader2 size={14} style={{ animation: "spin 1s linear infinite" }} />;
+const Spinner = () => <Loader2 size={16} style={{ animation: "spin 1s linear infinite" }} />;
 
 const FIELD_LABELS = {
   deponent_name: "Deponent Name", age: "Age", address: "Address",
@@ -64,110 +64,123 @@ export default function Drafting() {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#F8FAFC" }}>
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-
-      <nav style={{
-        background: "#fff", borderBottom: "1px solid #E2E8F0", padding: "0 32px",
-        height: 56, display: "flex", alignItems: "center", gap: 16,
-        boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
-      }}>
-        <Scale size={18} color="#4F46E5" />
-        <span style={{ fontWeight: 700, fontSize: 15 }}>LegalAI</span>
-        <span style={{ color: "#CBD5E1" }}>›</span>
-        <span style={{ color: "#64748B", fontSize: 14 }}>AI Document Drafting</span>
-        <button className="btn" onClick={() => navigate("/")} style={{ background: "#F1F5F9", color: "#475569", marginLeft: "auto" }}>
-          <ArrowLeft size={14} /> Back
-        </button>
-      </nav>
-
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "32px 24px" }}>
-        <div style={{ marginBottom: 28 }}>
-          <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 4 }}>✍️ AI Document Drafting</h1>
-          <p style={{ color: "#64748B" }}>Fill in the details and get a complete, professionally formatted legal document instantly.</p>
+    <div className="main-content fade-in" style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
+      
+      {/* Header */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+        <div>
+          <h1 style={{ marginBottom: "8px" }}>AI Document Drafting</h1>
+          <p style={{ color: "var(--text-muted)", fontSize: "16px", fontWeight: "500" }}>Generate professional legal documents with automated formatting.</p>
         </div>
+        <button className="btn btn-outline" onClick={() => navigate("/")} style={{ borderRadius: "12px" }}>
+          <ArrowLeft size={18} /> Exit Designer
+        </button>
+      </div>
 
-        <div style={{ display: "flex", gap: 24, alignItems: "flex-start" }}>
-          {/* Left — Form */}
-          <div style={{ width: 380, flexShrink: 0 }}>
-            {/* Type selector */}
-            <div style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 12, padding: 20, marginBottom: 16, boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
-              <label style={{ fontSize: 11, fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", marginBottom: 10 }}>
-                Document Type
-              </label>
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                {Object.entries(types).map(([key, val]) => (
-                  <button key={key} className="btn"
-                    onClick={() => handleTypeChange(key)}
-                    style={{
-                      justifyContent: "flex-start", padding: "10px 14px",
-                      background: selectedType === key ? "#EEF2FF" : "#F8FAFC",
-                      color: selectedType === key ? "#4F46E5" : "#374151",
-                      border: `1px solid ${selectedType === key ? "#C7D2FE" : "#E2E8F0"}`,
-                      fontWeight: selectedType === key ? 700 : 500,
-                    }}>
-                    <FileText size={14} /> {val.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Fields */}
-            <div style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 12, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
-              <label style={{ fontSize: 11, fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", marginBottom: 14 }}>
-                Document Details
-              </label>
-              {Object.keys(formData).map((field) => (
-                <div key={field} style={{ marginBottom: 14 }}>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: "#374151", display: "block", marginBottom: 5 }}>
-                    {FIELD_LABELS[field] || field}
-                  </label>
-                  {MULTILINE.has(field) ? (
-                    <textarea rows={3} value={formData[field]}
-                      onChange={(e) => setFormData((p) => ({ ...p, [field]: e.target.value }))}
-                      style={{ width: "100%", padding: "8px 12px", border: "1px solid #E2E8F0", borderRadius: 8, fontSize: 13, resize: "vertical", background: "#F8FAFC" }} />
-                  ) : (
-                    <input value={formData[field]}
-                      onChange={(e) => setFormData((p) => ({ ...p, [field]: e.target.value }))}
-                      style={{ width: "100%", padding: "8px 12px", border: "1px solid #E2E8F0", borderRadius: 8, fontSize: 13, background: "#F8FAFC" }} />
-                  )}
-                </div>
+      <div style={{ display: "grid", gridTemplateColumns: "380px 1fr", gap: "32px", alignItems: "flex-start" }}>
+        
+        {/* Left Column: Configuration */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+          
+          {/* Document Selection */}
+          <div className="premium-card" style={{ padding: "24px" }}>
+            <h3 style={{ fontSize: "16px", marginBottom: "20px", display: "flex", alignItems: "center", gap: "10px" }}>
+              <FileText size={18} color="var(--primary)" /> Document Type
+            </h3>
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              {Object.entries(types).map(([key, val]) => (
+                <button key={key} className="btn"
+                  onClick={() => handleTypeChange(key)}
+                  style={{
+                    justifyContent: "space-between", padding: "12px 16px", borderRadius: "10px",
+                    background: selectedType === key ? "var(--primary-light)" : "var(--bg-main)",
+                    color: selectedType === key ? "var(--primary)" : "var(--text-main)",
+                    border: `1.5px solid ${selectedType === key ? "var(--primary)" : "transparent"}`,
+                    fontWeight: "700", fontSize: "14px"
+                  }}>
+                  <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+                    <div style={{ width: "32px", height: "32px", borderRadius: "8px", background: "white", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "var(--shadow-sm)" }}>
+                      <FileText size={16} />
+                    </div>
+                    {val.label}
+                  </div>
+                  {selectedType === key && <ChevronRight size={16} />}
+                </button>
               ))}
-              <button className="btn" onClick={handleGenerate} disabled={loading}
-                style={{ width: "100%", justifyContent: "center", padding: "12px", fontSize: 14,
-                  background: loading ? "#E2E8F0" : "#4F46E5", color: loading ? "#94A3B8" : "#fff", marginTop: 4 }}>
-                {loading ? <><Spinner /> Generating...</> : <><Zap size={15} /> Generate Draft</>}
-              </button>
             </div>
           </div>
 
-          {/* Right — Output */}
-          <div style={{ flex: 1 }}>
-            <div style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 12, overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
-              <div style={{ padding: "14px 20px", borderBottom: "1px solid #E2E8F0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontWeight: 600, fontSize: 14 }}>Generated Document</span>
-                {draft && (
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <button className="btn" onClick={handleCopy} style={{ background: "#F1F5F9", color: "#475569", padding: "6px 12px" }}>
-                      {copied ? <><Check size={13} /> Copied!</> : <><Copy size={13} /> Copy</>}
-                    </button>
-                    <button className="btn" onClick={handleDownload} style={{ background: "#F1F5F9", color: "#475569", padding: "6px 12px" }}>
-                      <Download size={13} /> Download
-                    </button>
-                  </div>
-                )}
+          {/* Form Fields */}
+          <div className="premium-card" style={{ padding: "24px" }}>
+            <h3 style={{ fontSize: "16px", marginBottom: "24px", display: "flex", alignItems: "center", gap: "10px" }}>
+              <Settings size={18} color="var(--primary)" /> Parameters
+            </h3>
+            <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+              {Object.keys(formData).map((field) => (
+                <div key={field}>
+                  <label style={{ fontSize: "12px", fontWeight: "800", color: "var(--text-light)", textTransform: "uppercase", display: "block", marginBottom: "8px", letterSpacing: "0.05em" }}>
+                    {FIELD_LABELS[field] || field}
+                  </label>
+                  {MULTILINE.has(field) ? (
+                    <textarea rows={4} value={formData[field]}
+                      onChange={(e) => setFormData((p) => ({ ...p, [field]: e.target.value }))}
+                      placeholder={`Enter ${FIELD_LABELS[field] || field}...`}
+                      style={{ borderRadius: "10px", padding: "12px 16px" }} />
+                  ) : (
+                    <input value={formData[field]}
+                      onChange={(e) => setFormData((p) => ({ ...p, [field]: e.target.value }))}
+                      placeholder={`Enter ${FIELD_LABELS[field] || field}...`}
+                      style={{ borderRadius: "10px", padding: "12px 16px" }} />
+                  )}
+                </div>
+              ))}
+              <button className="btn btn-primary" onClick={handleGenerate} disabled={loading}
+                style={{ width: "100%", padding: "14px", borderRadius: "12px", marginTop: "12px" }}>
+                {loading ? <Spinner /> : <><Zap size={18} /> Generate Professional Draft</>}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Column: Editor Preview */}
+        <div style={{ height: "calc(100vh - 200px)", position: "sticky", top: "32px" }}>
+          <div className="premium-card" style={{ height: "100%", padding: "0", display: "flex", flexDirection: "column", overflow: "hidden", border: "2px solid var(--border-subtle)" }}>
+            <div style={{ padding: "20px 32px", borderBottom: "1px solid var(--border-subtle)", background: "var(--bg-main)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div>
+                <h3 style={{ fontSize: "15px", marginBottom: "2px" }}>Live Draft Preview</h3>
+                <p style={{ fontSize: "11px", color: "var(--text-muted)", fontWeight: "600" }}>{selectedType ? types[selectedType]?.label : "Initializing..."}</p>
               </div>
+              {draft && (
+                <div style={{ display: "flex", gap: "12px" }}>
+                  <button className="btn btn-secondary" onClick={handleCopy} style={{ borderRadius: "10px", padding: "8px 16px" }}>
+                    {copied ? <><Check size={14} /> Copied</> : <><Copy size={14} /> Copy</>}
+                  </button>
+                  <button className="btn btn-primary" onClick={handleDownload} style={{ borderRadius: "10px", padding: "8px 16px" }}>
+                    <Download size={14} /> Download
+                  </button>
+                </div>
+              )}
+            </div>
+            
+            <div style={{ flex: 1, position: "relative", background: "#fdfdfd" }}>
               <textarea
-                value={loading ? "⚡ Generating your document..." : draft}
+                value={loading ? "Generating your legal document with AI precision...\nPlease wait." : draft}
                 onChange={(e) => setDraft(e.target.value)}
-                placeholder="Your generated legal document will appear here..."
+                placeholder="The AI will render your professional legal draft here after you fill in the parameters on the left."
                 style={{
-                  width: "100%", minHeight: 580, padding: 20,
-                  fontFamily: "'Courier New', monospace", fontSize: 13, lineHeight: 1.7,
-                  border: "none", resize: "none", background: draft ? "#fff" : "#FAFAFA",
-                  color: "#1E293B", outline: "none",
+                  width: "100%", height: "100%", padding: "40px",
+                  fontFamily: "'Courier New', Courier, monospace", fontSize: "14px", lineHeight: "1.8",
+                  border: "none", resize: "none", background: "transparent",
+                  color: "var(--text-main)", outline: "none",
+                  whiteSpace: "pre-wrap"
                 }}
               />
+              {!draft && !loading && (
+                <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", textAlign: "center", opacity: 0.3 }}>
+                  <Scale size={80} style={{ marginBottom: "20px" }} />
+                  <p style={{ fontWeight: "700" }}>No content generated yet</p>
+                </div>
+              )}
             </div>
           </div>
         </div>

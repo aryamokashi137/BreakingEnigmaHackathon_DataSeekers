@@ -1,38 +1,48 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Loader2, RefreshCw, Zap, Brain, Scale } from "lucide-react";
+import { ArrowLeft, Loader2, RefreshCw, Zap, Brain, Scale, Shield, Target, AlertTriangle, ListChecks, ChevronRight } from "lucide-react";
 import { buildLifecycle, getLifecycle, analyzeCase } from "../api";
 
-const Spinner = () => <Loader2 size={14} style={{ animation: "spin 1s linear infinite" }} />;
+const Spinner = () => <Loader2 size={16} style={{ animation: "spin 1s linear infinite" }} />;
 
-const InfoCard = ({ label, value, color = "#4F46E5" }) => (
-  <div style={{
-    background: "#fff", border: "1px solid #E2E8F0", borderRadius: 10,
-    padding: "14px 18px", borderTop: `3px solid ${color}`,
+const InfoCard = ({ label, value, color = "var(--primary)", icon: Icon }) => (
+  <div className="premium-card" style={{
+    padding: "20px", display: "flex", gap: "16px", alignItems: "center"
   }}>
-    <p style={{ fontSize: 11, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>{label}</p>
-    <p style={{ fontWeight: 700, fontSize: 15, color: "#0F172A" }}>{value || "—"}</p>
+    <div style={{ width: "48px", height: "48px", borderRadius: "14px", background: "var(--bg-main)", color: color, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      {Icon && <Icon size={24} />}
+    </div>
+    <div>
+      <p style={{ fontSize: "11px", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: "800", marginBottom: "4px" }}>{label}</p>
+      <p style={{ fontWeight: "800", fontSize: "16px", color: "var(--text-main)" }}>{value || "Pending Analysis"}</p>
+    </div>
   </div>
 );
 
-const Section = ({ emoji, title, items, color }) => (
-  <div style={{ marginBottom: 20 }}>
-    <h4 style={{ fontSize: 13, fontWeight: 700, color, marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
-      {emoji} {title}
-    </h4>
+const Section = ({ icon: Icon, title, items, color, bg }) => (
+  <div className="premium-card" style={{ height: "100%", padding: "24px" }}>
+    <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "20px" }}>
+      <div style={{ width: "32px", height: "32px", borderRadius: "8px", background: bg || "var(--bg-main)", color: color, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <Icon size={18} />
+      </div>
+      <h4 style={{ fontSize: "15px", fontWeight: "700", color: "var(--text-main)" }}>{title}</h4>
+    </div>
     {items?.length > 0 ? (
-      <ul style={{ paddingLeft: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 6 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
         {items.map((item, i) => (
-          <li key={i} style={{
-            fontSize: 13, color: "#374151", padding: "8px 12px",
-            background: "#F8FAFC", borderRadius: 6, borderLeft: `3px solid ${color}`,
+          <div key={i} style={{
+            fontSize: "13px", color: "var(--text-main)", padding: "12px 16px",
+            background: "var(--bg-main)", borderRadius: "10px", borderLeft: `4px solid ${color}`,
+            fontWeight: "500", lineHeight: "1.5"
           }}>
             {item}
-          </li>
+          </div>
         ))}
-      </ul>
+      </div>
     ) : (
-      <p style={{ color: "#94A3B8", fontSize: 13 }}>Not available</p>
+      <div style={{ padding: "32px 0", textAlign: "center", opacity: 0.5 }}>
+        <p style={{ color: "var(--text-muted)", fontSize: "13px" }}>No data extracted</p>
+      </div>
     )}
   </div>
 );
@@ -67,111 +77,98 @@ export default function CaseAnalysis() {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#F8FAFC" }}>
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-
-      {/* Nav */}
-      <nav style={{
-        background: "#fff", borderBottom: "1px solid #E2E8F0", padding: "0 32px",
-        height: 56, display: "flex", alignItems: "center", gap: 16,
-        boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
-      }}>
-        <Scale size={18} color="#4F46E5" />
-        <span style={{ fontWeight: 700, fontSize: 15 }}>LegalAI</span>
-        <span style={{ color: "#CBD5E1" }}>›</span>
-        <span style={{ color: "#64748B", fontSize: 14 }}>Case Analysis</span>
-        <button className="btn" onClick={() => navigate(-1)}
-          style={{ background: "#F1F5F9", color: "#475569", marginLeft: "auto" }}>
-          <ArrowLeft size={14} /> Back
+    <div className="main-content fade-in" style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
+      
+      {/* Header */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+        <div>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", color: "var(--primary)", fontWeight: "700", fontSize: "13px", textTransform: "uppercase", marginBottom: "8px" }}>
+            <Brain size={16} /> Advanced Case Intelligence
+          </div>
+          <h1 style={{ marginBottom: "8px" }}>Strategy & Analysis</h1>
+          <p style={{ color: "var(--text-muted)", fontSize: "16px", fontWeight: "500" }}>AI-driven extraction of case facts, risks, and winning legal strategies.</p>
+        </div>
+        <button className="btn btn-outline" onClick={() => navigate(-1)} style={{ borderRadius: "12px", padding: "10px 20px" }}>
+          <ArrowLeft size={16} /> Back to Case
         </button>
-      </nav>
+      </div>
 
-      <div style={{ maxWidth: 1000, margin: "0 auto", padding: "32px 24px" }}>
-        <div style={{ marginBottom: 28 }}>
-          <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 6 }}>🧠 Case Lifecycle & Smart Analysis</h1>
-          <p style={{ color: "#64748B" }}>Extract the full lifecycle from documents, then get AI-powered legal strategy.</p>
+      {error && (
+        <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", color: "#B91C1C", padding: "16px 20px", borderRadius: "12px", display: "flex", alignItems: "center", gap: "12px", fontSize: "14px", fontWeight: "600" }}>
+          <AlertTriangle size={20} /> {error}
+        </div>
+      )}
+
+      {/* Step 1: Lifecycle Extraction */}
+      <div className="premium-card" style={{ padding: "32px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "32px" }}>
+          <div>
+            <h2 style={{ fontSize: "20px", marginBottom: "4px" }}>1. Document Lifecycle Extraction</h2>
+            <p style={{ fontSize: "14px", color: "var(--text-muted)", fontWeight: "500" }}>Automatically identify parties, legal issues, and key procedural events.</p>
+          </div>
+          <button className="btn btn-primary"
+            onClick={() => handleBuildLifecycle(!!lifecycle)}
+            disabled={lifecycleLoading}
+            style={{ borderRadius: "12px", padding: "12px 24px" }}>
+            {lifecycleLoading ? <Spinner /> : lifecycle ? <><RefreshCw size={16} /> Update Extraction</> : <><Zap size={16} /> Run Extraction</>}
+          </button>
         </div>
 
-        {error && (
-          <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", color: "#B91C1C", padding: "12px 16px", borderRadius: 8, marginBottom: 20 }}>
-            ⚠️ {error}
+        {lifecycle ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
+              <InfoCard label="Case Categorization" value={lifecycle.case_type} color="var(--primary)" icon={Scale} />
+              <InfoCard label="Procedural Stage" value={lifecycle.current_stage} color="var(--success)" icon={Target} />
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
+              <Section icon={Shield} title="Involved Parties" items={lifecycle.parties} color="var(--primary)" />
+              <Section icon={ListChecks} title="Identified Legal Issues" items={lifecycle.legal_issues} color="var(--warning)" bg="#FFFBEB" />
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
+              <Section icon={Calendar} title="Procedural Timeline" items={lifecycle.timeline} color="var(--accent)" bg="#F5F3FF" />
+              <Section icon={Zap} title="Key Factual Events" items={lifecycle.key_events} color="var(--info)" bg="#EFF6FF" />
+            </div>
+          </div>
+        ) : (
+          <div style={{ textAlign: "center", padding: "64px 0", background: "var(--bg-main)", borderRadius: "16px", border: "2px dashed var(--border-subtle)" }}>
+            <Brain size={64} color="var(--border-subtle)" style={{ marginBottom: "20px", opacity: 0.5 }} />
+            <h3 style={{ marginBottom: "8px" }}>No Analysis Found</h3>
+            <p style={{ color: "var(--text-muted)", maxWidth: "340px", margin: "0 auto" }}>Please run the extraction process to analyze your case documents.</p>
           </div>
         )}
+      </div>
 
-        {/* Step 1 */}
-        <div style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 12, padding: 24, marginBottom: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-            <div>
-              <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 2 }}>📋 Step 1: Case Lifecycle</h2>
-              <p style={{ fontSize: 13, color: "#64748B" }}>Extract parties, timeline, and legal issues from documents.</p>
-            </div>
-            <button className="btn"
-              onClick={() => handleBuildLifecycle(!!lifecycle)}
-              disabled={lifecycleLoading}
-              style={{ background: lifecycleLoading ? "#E2E8F0" : "#4F46E5", color: lifecycleLoading ? "#94A3B8" : "#fff" }}>
-              {lifecycleLoading ? <><Spinner /> Extracting...</> : lifecycle ? <><RefreshCw size={14} /> Re-extract</> : <><Zap size={14} /> Extract Lifecycle</>}
-            </button>
+      {/* Step 2: Strategic Insights */}
+      <div className="premium-card" style={{ padding: "32px", border: "2px solid var(--success-light)", background: analysis ? "white" : "var(--bg-main)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "32px" }}>
+          <div>
+            <h2 style={{ fontSize: "20px", marginBottom: "4px" }}>2. Strategic Legal Insights</h2>
+            <p style={{ fontSize: "14px", color: "var(--text-muted)", fontWeight: "500" }}>AI-powered evaluation of case strengths, weaknesses, and next steps.</p>
           </div>
-
-          {lifecycle ? (
-            <>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
-                <InfoCard label="Case Type" value={lifecycle.case_type} color="#4F46E5" />
-                <InfoCard label="Current Stage" value={lifecycle.current_stage} color="#16A34A" />
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
-                <div>
-                  <Section emoji="👥" title="Parties Involved" items={lifecycle.parties} color="#4F46E5" />
-                  <Section emoji="⚖️" title="Legal Issues" items={lifecycle.legal_issues} color="#D97706" />
-                </div>
-                <div>
-                  <Section emoji="📅" title="Timeline" items={lifecycle.timeline} color="#7C3AED" />
-                  <Section emoji="🔑" title="Key Events" items={lifecycle.key_events} color="#0891B2" />
-                </div>
-              </div>
-            </>
-          ) : (
-            <div style={{ textAlign: "center", padding: "32px 0", color: "#94A3B8" }}>
-              <Brain size={36} color="#CBD5E1" style={{ marginBottom: 10 }} />
-              <p>Upload documents and click "Extract Lifecycle" to begin.</p>
-            </div>
-          )}
+          <button className="btn btn-primary"
+            onClick={handleAnalyze}
+            disabled={analysisLoading || !lifecycle}
+            style={{ borderRadius: "12px", padding: "12px 24px", background: "var(--success)" }}>
+            {analysisLoading ? <Spinner /> : <><Brain size={16} /> Generate Strategy</>}
+          </button>
         </div>
 
-        {/* Step 2 */}
-        <div style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 12, padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-            <div>
-              <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 2 }}>🎯 Step 2: Smart Legal Analysis</h2>
-              <p style={{ fontSize: 13, color: "#64748B" }}>Get AI-powered strengths, risks, and strategy.</p>
+        {analysis ? (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+              <Section icon={Shield} title="Case Strengths" items={analysis.strengths} color="var(--success)" bg="#ECFDF5" />
+              <Section icon={Target} title="Recommended Strategy" items={analysis.strategy} color="var(--primary)" />
             </div>
-            <button className="btn"
-              onClick={handleAnalyze}
-              disabled={analysisLoading || !lifecycle}
-              style={{ background: analysisLoading || !lifecycle ? "#E2E8F0" : "#16A34A", color: analysisLoading || !lifecycle ? "#94A3B8" : "#fff" }}>
-              {analysisLoading ? <><Spinner /> Analyzing...</> : <><Brain size={14} /> Analyze Case</>}
-            </button>
+            <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+              <Section icon={AlertTriangle} title="Risks & Weaknesses" items={analysis.risks} color="var(--danger)" bg="#FEF2F2" />
+              <Section icon={ChevronRight} title="Next Procedural Steps" items={analysis.next_steps} color="var(--info)" bg="#EFF6FF" />
+            </div>
           </div>
-
-          {!lifecycle && <p style={{ color: "#94A3B8", textAlign: "center", padding: "20px 0" }}>Complete Step 1 first.</p>}
-
-          {analysis && (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
-              <div>
-                <Section emoji="✅" title="Strengths" items={analysis.strengths} color="#16A34A" />
-                <Section emoji="👣" title="Next Steps" items={analysis.next_steps} color="#4F46E5" />
-              </div>
-              <div>
-                <Section emoji="⚠️" title="Risks & Weaknesses" items={analysis.risks} color="#DC2626" />
-                <Section emoji="🎯" title="Legal Strategy" items={analysis.strategy} color="#7C3AED" />
-              </div>
-            </div>
-          )}
-
-          {!analysis && lifecycle && (
-            <p style={{ color: "#94A3B8", textAlign: "center", padding: "20px 0" }}>Click "Analyze Case" to get AI-powered legal strategy.</p>
-          )}
-        </div>
+        ) : (
+          <div style={{ textAlign: "center", padding: "40px 0" }}>
+            <p style={{ color: "var(--text-muted)", fontWeight: "600" }}>{lifecycle ? "Ready to generate strategic insights." : "Complete Step 1 to unlock strategic insights."}</p>
+          </div>
+        )}
       </div>
     </div>
   );
