@@ -2,23 +2,23 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Search, Filter, Grid, List, Trash2, Clock, ChevronRight, MoreHorizontal } from "lucide-react";
 import { getCases, createCase, deleteCase } from "../api";
+import { useAuth } from "../App";
 
 export default function Cases() {
   const navigate = useNavigate();
+  const { lawyer } = useAuth();
   const [cases, setCases] = useState([]);
   const [search, setSearch] = useState("");
   const [viewMode, setViewMode] = useState("grid");
 
-  const loadCases = () => getCases().then((r) => setCases(r.data));
+  const loadCases = () => getCases(lawyer.lawyer_id).then((r) => setCases(r.data));
 
-  useEffect(() => {
-    loadCases();
-  }, []);
+  useEffect(() => { if (lawyer) loadCases(); }, [lawyer]);
 
   const handleCreate = async () => {
     const name = prompt("Enter Case Name:");
     if (!name?.trim()) return;
-    await createCase(name.trim());
+    await createCase(name.trim(), lawyer.lawyer_id);
     loadCases();
   };
 

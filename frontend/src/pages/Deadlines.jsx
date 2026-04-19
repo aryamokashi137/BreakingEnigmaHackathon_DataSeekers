@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Plus, Calendar, Loader2, AlertCircle, Zap, Clock, ChevronRight, CheckCircle2 } from "lucide-react";
 import { getCases, getTimeline, extractDeadlines, addEvent } from "../api";
+import { useAuth } from "../App";
 
 const Spinner = () => <Loader2 size={16} style={{ animation: "spin 1s linear infinite" }} />;
 
@@ -14,6 +15,7 @@ const TYPE_META = {
 };
 
 export default function Deadlines() {
+  const { lawyer } = useAuth();
   const [cases, setCases] = useState([]);
   const [selectedCase, setSelectedCase] = useState("");
   const [upcoming, setUpcoming] = useState([]);
@@ -25,11 +27,12 @@ export default function Deadlines() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    getCases().then((r) => {
+    if (!lawyer) return;
+    getCases(lawyer.lawyer_id).then((r) => {
       setCases(r.data);
       if (r.data.length > 0) setSelectedCase(r.data[0]._id);
     });
-  }, []);
+  }, [lawyer]);
 
   useEffect(() => {
     if (!selectedCase) return;

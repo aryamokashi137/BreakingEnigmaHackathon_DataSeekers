@@ -4,7 +4,7 @@ from bson import ObjectId
 from datetime import datetime
 import os, shutil
 
-from database import cases_collection, documents_collection, chats_collection
+from database import cases_collection, documents_collection, chats_collection, lawyers_collection
 from models import CaseCreate, ChatMessage
 from pydantic import BaseModel
 from pdf_processor import extract_text, chunk_text
@@ -25,11 +25,9 @@ app.add_middleware(
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-# Base directory = where main.py lives, so relative paths always resolve correctly
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 def resolve_path(file_path: str) -> str:
-    """Convert stored relative path to absolute path."""
     if os.path.isabs(file_path):
         return file_path
     return os.path.join(BASE_DIR, file_path)
@@ -39,6 +37,24 @@ def str_id(doc):
     return doc
 
 
+# ── Auth ───────────────────────────────────────────────────────────────────────
+
+class LoginRequest(BaseModel):
+    lawyer_id: str
+
+@app.post("/login")
+def login(payload: LoginRequest):
+    lawyer = lawyers_collection.find_one({"lawyer_id": payload.lawyer_id.upper()})
+    if not lawyer:
+        raise HTTPException(status_code=401, detail="Invalid Lawyer ID. Please check and try again.")
+    lawyer["_id"] = str(lawyer["_id"])
+    return {"lawyer": lawyer}
+
+@app.get("/lawyers")
+def list_lawyers():
+    return [{**l, "_id": str(l["_id"])} for l in lawyers_collection.find()]
+
+
 # ── Cases ──────────────────────────────────────────────────────────────────────
 
 @app.post("/cases")
@@ -46,6 +62,7 @@ def create_case(payload: CaseCreate):
     doc = {
         "case_name": payload.case_name,
         "description": payload.description,
+        "lawyer_id": payload.lawyer_id,
         "created_at": datetime.utcnow().isoformat(),
     }
     result = cases_collection.insert_one(doc)
@@ -53,8 +70,8 @@ def create_case(payload: CaseCreate):
 
 
 @app.get("/cases")
-def list_cases():
-    return [str_id(c) for c in cases_collection.find()]
+def list_cases(lawyer_id: str):
+    return [str_id(c) for c in cases_collection.find({"lawyer_id": lawyer_id})]
 
 
 @app.get("/cases/{case_id}")
@@ -70,7 +87,6 @@ def delete_case(case_id: str):
     case = cases_collection.find_one({"_id": ObjectId(case_id)})
     if not case:
         raise HTTPException(status_code=404, detail="Case not found")
-    # Delete all documents and their files
     docs = list(documents_collection.find({"case_id": case_id}))
     for doc in docs:
         if os.path.exists(resolve_path(doc["file_path"])):
@@ -91,10 +107,7 @@ async def upload_document(case_id: str, file: UploadFile = File(...)):
 
     ext = os.path.splitext(file.filename)[1].lower()
     if ext not in ALLOWED_EXTENSIONS:
-        raise HTTPException(
-            status_code=400,
-            detail=f"File type '{ext}' not allowed. Allowed: {', '.join(ALLOWED_EXTENSIONS)}"
-        )
+        raise HTTPException(status_code=400, detail=f"File type '{ext}' not allowed.")
 
     case_dir = os.path.join(UPLOAD_DIR, case_id)
     os.makedirs(case_dir, exist_ok=True)
@@ -104,7 +117,6 @@ async def upload_document(case_id: str, file: UploadFile = File(...)):
     with open(abs_file_path, "wb") as f:
         shutil.copyfileobj(file.file, f)
 
-    # Extract text + chunk + embed → FAISS
     text = extract_text(abs_file_path)
     if text:
         chunks = chunk_text(text, case_id=case_id, doc_name=file.filename)
@@ -123,8 +135,7 @@ async def upload_document(case_id: str, file: UploadFile = File(...)):
 
 @app.get("/documents/{case_id}")
 def list_documents(case_id: str):
-    docs = documents_collection.find({"case_id": case_id})
-    return [str_id(d) for d in docs]
+    return [str_id(d) for d in documents_collection.find({"case_id": case_id})]
 
 
 @app.delete("/documents/{doc_id}")
@@ -138,47 +149,39 @@ def delete_document(doc_id: str):
     return {"message": "Deleted"}
 
 
-# ── Chat (Intent Router) ──────────────────────────────────────────────────────
+# ── Chat ───────────────────────────────────────────────────────────────────────
 
 @app.post("/chat")
 def chat(payload: ChatMessage):
-    user_msg = {
-        "case_id": payload.case_id,
-        "role": "user",
-        "message": payload.message,
-        "created_at": datetime.utcnow().isoformat(),
-    }
-    chats_collection.insert_one(user_msg)
+    chats_collection.insert_one({
+        "case_id": payload.case_id, "role": "user",
+        "message": payload.message, "created_at": datetime.utcnow().isoformat(),
+    })
 
     intent = detect_intent(payload.message)
 
     if intent == "summarize":
         chunks = search(payload.case_id, "document summary overview", top_k=20)
         reply = summarize_text(chunks)
-
     elif intent == "legal_research":
-        reply = legal_research(payload.message)
-
-    else:  # document_qa
+        # Pass top RAG chunks as case context so research is case-aware
+        context_chunks = search(payload.case_id, payload.message, top_k=3)
+        case_context = "\n\n".join(c["text"] for c in context_chunks) if context_chunks else ""
+        reply = legal_research(payload.message, case_context)
+    else:
         chunks = search(payload.case_id, payload.message, top_k=5)
         reply = rag_answer(payload.message, chunks)
 
-    bot_msg = {
-        "case_id": payload.case_id,
-        "role": "assistant",
-        "message": reply,
-        "intent": intent,
-        "created_at": datetime.utcnow().isoformat(),
-    }
-    chats_collection.insert_one(bot_msg)
-
+    chats_collection.insert_one({
+        "case_id": payload.case_id, "role": "assistant",
+        "message": reply, "intent": intent, "created_at": datetime.utcnow().isoformat(),
+    })
     return {"response": reply, "intent": intent}
 
 
 @app.get("/chat/{case_id}")
 def get_chat_history(case_id: str):
-    msgs = chats_collection.find({"case_id": case_id})
-    return [str_id(m) for m in msgs]
+    return [str_id(m) for m in chats_collection.find({"case_id": case_id})]
 
 
 @app.delete("/chat/{case_id}")
@@ -187,74 +190,53 @@ def clear_chat(case_id: str):
     return {"message": "Chat cleared"}
 
 
-# ── Summarize specific document ────────────────────────────────────────────────
+# ── Summarize ──────────────────────────────────────────────────────────────────
 
 @app.post("/summarize/{case_id}/{doc_name}")
 def summarize_document(case_id: str, doc_name: str):
     doc = documents_collection.find_one({"case_id": case_id, "filename": doc_name})
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
-
     text = extract_text(resolve_path(doc["file_path"]))
     if not text.strip():
-        return {"summary": "This document has no extractable text content (e.g. scanned image)."}
-
+        return {"summary": "This document has no extractable text content."}
     chunks = chunk_text(text, case_id=case_id, doc_name=doc_name)
-    summary = summarize_text(chunks)
-    return {"summary": summary}
+    return {"summary": summarize_text(chunks)}
 
 
-# ── Document Drafting ──────────────────────────────────────────────────────
+# ── Document Drafting ──────────────────────────────────────────────────────────
 
 @app.get("/draft-types")
 def get_draft_types():
-    return {
-        key: {"label": val["label"], "fields": val["fields"]}
-        for key, val in DOCUMENT_TYPES.items()
-    }
+    return {k: {"label": v["label"], "fields": v["fields"]} for k, v in DOCUMENT_TYPES.items()}
 
 
 class DraftRequest(BaseModel):
     type: str
     data: dict
 
-
 @app.post("/generate-draft")
 def generate_document_draft(payload: DraftRequest):
     if payload.type not in DOCUMENT_TYPES:
         raise HTTPException(status_code=400, detail=f"Unsupported document type: {payload.type}")
-    draft = generate_draft(payload.type, payload.data)
-    return {"draft": draft}
+    return {"draft": generate_draft(payload.type, payload.data)}
 
 
-# ── Case Lifecycle ───────────────────────────────────────────────────────────────
+# ── Case Lifecycle ─────────────────────────────────────────────────────────────
 
 @app.post("/case-lifecycle/{case_id}")
 def build_case_lifecycle(case_id: str, force: bool = False):
     case = cases_collection.find_one({"_id": ObjectId(case_id)})
     if not case:
         raise HTTPException(status_code=404, detail="Case not found")
-
-    # Return cached lifecycle only if not forcing re-extraction
     if case.get("lifecycle") and not force:
         return {"lifecycle": case["lifecycle"], "cached": True}
-
-    # Gather all document texts for this case
     docs = list(documents_collection.find({"case_id": case_id, "has_text": True}))
     if not docs:
         raise HTTPException(status_code=400, detail="No indexed documents found for this case.")
-
-    combined_text = ""
-    for doc in docs:
-        combined_text += extract_text(resolve_path(doc["file_path"])) + "\n\n"
-
+    combined_text = "".join(extract_text(resolve_path(d["file_path"])) + "\n\n" for d in docs)
     lifecycle = extract_lifecycle(combined_text)
-
-    # Store in MongoDB
-    cases_collection.update_one(
-        {"_id": ObjectId(case_id)},
-        {"$set": {"lifecycle": lifecycle}}
-    )
+    cases_collection.update_one({"_id": ObjectId(case_id)}, {"$set": {"lifecycle": lifecycle}})
     return {"lifecycle": lifecycle, "cached": False}
 
 
@@ -266,45 +248,33 @@ def get_case_lifecycle(case_id: str):
     return {"lifecycle": case.get("lifecycle")}
 
 
-# ── Smart Case Analysis Agent ────────────────────────────────────────────────────
+# ── Smart Analysis ─────────────────────────────────────────────────────────────
 
 @app.post("/analyze-case/{case_id}")
 def analyze_case_endpoint(case_id: str):
     case = cases_collection.find_one({"_id": ObjectId(case_id)})
     if not case:
         raise HTTPException(status_code=404, detail="Case not found")
-
     lifecycle = case.get("lifecycle")
     if not lifecycle:
-        raise HTTPException(status_code=400, detail="Run /case-lifecycle first to extract lifecycle data.")
-
+        raise HTTPException(status_code=400, detail="Run /case-lifecycle first.")
     chunks = search(case_id, "case arguments evidence parties legal issues", top_k=8)
-    analysis = analyze_case(lifecycle, chunks)
-    return {"analysis": analysis}
+    return {"analysis": analyze_case(lifecycle, chunks)}
 
 
-# ── Deadline & Court Tracker ───────────────────────────────────────────────────
+# ── Deadline Tracker ───────────────────────────────────────────────────────────
 
 @app.post("/extract-deadlines/{case_id}")
 def extract_case_deadlines(case_id: str):
     case = cases_collection.find_one({"_id": ObjectId(case_id)})
     if not case:
         raise HTTPException(status_code=404, detail="Case not found")
-
     docs = list(documents_collection.find({"case_id": case_id, "has_text": True}))
     if not docs:
-        raise HTTPException(status_code=400, detail="No indexed documents found for this case.")
-
-    combined_text = ""
-    for doc in docs:
-        combined_text += extract_text(resolve_path(doc["file_path"])) + "\n\n"
-
+        raise HTTPException(status_code=400, detail="No indexed documents found.")
+    combined_text = "".join(extract_text(resolve_path(d["file_path"])) + "\n\n" for d in docs)
     events = extract_deadlines(combined_text)
-
-    cases_collection.update_one(
-        {"_id": ObjectId(case_id)},
-        {"$set": {"events": events}}
-    )
+    cases_collection.update_one({"_id": ObjectId(case_id)}, {"$set": {"events": events}})
     return {"events": events}
 
 
@@ -314,17 +284,10 @@ def get_timeline(case_id: str):
     case = cases_collection.find_one({"_id": ObjectId(case_id)})
     if not case:
         raise HTTPException(status_code=404, detail="Case not found")
-
-    events = case.get("events", [])
     today = date.today().isoformat()
-
     upcoming, past = [], []
-    for e in sorted(events, key=lambda x: x.get("date", "")):
-        if e.get("date", "") >= today:
-            upcoming.append(e)
-        else:
-            past.append(e)
-
+    for e in sorted(case.get("events", []), key=lambda x: x.get("date", "")):
+        (upcoming if e.get("date", "") >= today else past).append(e)
     return {"upcoming": upcoming, "past": past}
 
 
@@ -333,15 +296,11 @@ class EventInput(BaseModel):
     type: str
     description: str
 
-
 @app.post("/add-event/{case_id}")
 def add_event(case_id: str, payload: EventInput):
     case = cases_collection.find_one({"_id": ObjectId(case_id)})
     if not case:
         raise HTTPException(status_code=404, detail="Case not found")
     new_event = {"date": payload.date, "type": payload.type, "description": payload.description}
-    cases_collection.update_one(
-        {"_id": ObjectId(case_id)},
-        {"$push": {"events": new_event}}
-    )
+    cases_collection.update_one({"_id": ObjectId(case_id)}, {"$push": {"events": new_event}})
     return {"message": "Event added", "event": new_event}

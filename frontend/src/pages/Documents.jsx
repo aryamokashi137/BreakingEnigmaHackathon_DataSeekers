@@ -2,10 +2,12 @@ import { useState, useEffect, useRef } from "react";
 import { Upload, FileText, Trash2, Loader2, FolderOpen, Search, CheckCircle, File, MoreVertical, X } from "lucide-react";
 import { getCases, getDocuments, uploadDocument, deleteDocument, summarizeDocument } from "../api";
 import { intentMeta } from "../theme";
+import { useAuth } from "../App";
 
 const Spinner = () => <Loader2 size={16} style={{ animation: "spin 1s linear infinite" }} />;
 
 export default function Documents() {
+  const { lawyer } = useAuth();
   const [cases, setCases] = useState([]);
   const [selectedCase, setSelectedCase] = useState("");
   const [docs, setDocs] = useState([]);
@@ -15,11 +17,12 @@ export default function Documents() {
   const fileRef = useRef(null);
 
   useEffect(() => {
-    getCases().then((r) => {
+    if (!lawyer) return;
+    getCases(lawyer.lawyer_id).then((r) => {
       setCases(r.data);
       if (r.data.length > 0) setSelectedCase(r.data[0]._id);
     });
-  }, []);
+  }, [lawyer]);
 
   useEffect(() => {
     if (!selectedCase) return;

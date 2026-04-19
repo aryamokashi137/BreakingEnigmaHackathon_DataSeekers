@@ -2,23 +2,25 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Plus, Briefcase, Clock, AlertCircle, TrendingUp, FileText, Calendar, PenTool, Brain, FolderOpen, ChevronRight } from "lucide-react";
 import { getCases, createCase } from "../api";
+import { useAuth } from "../App";
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const { lawyer } = useAuth();
   const [cases, setCases] = useState([]);
   const [creating, setCreating] = useState(false);
 
   useEffect(() => {
-    getCases().then((r) => setCases(r.data));
-  }, []);
+    if (lawyer) getCases(lawyer.lawyer_id).then((r) => setCases(r.data));
+  }, [lawyer]);
 
   const handleCreate = async () => {
     const name = prompt("Enter Case Name:");
     if (!name?.trim()) return;
     setCreating(true);
-    await createCase(name.trim());
+    await createCase(name.trim(), lawyer.lawyer_id);
     setCreating(false);
-    getCases().then((r) => setCases(r.data));
+    getCases(lawyer.lawyer_id).then((r) => setCases(r.data));
   };
 
   const recentCases = cases.slice(-5).reverse();
@@ -31,7 +33,7 @@ export default function Dashboard() {
         <div>
           <h1 style={{ marginBottom: "8px" }}>Dashboard</h1>
           <p style={{ color: "var(--text-muted)", fontSize: "16px", fontWeight: "500" }}>
-            Welcome back, <span style={{ color: "var(--primary)", fontWeight: "700" }}>John</span>. Here's your legal overview.
+            Welcome back, <span style={{ color: "var(--primary)", fontWeight: "700" }}>{lawyer?.name || "Counselor"}</span>. Here's your legal overview.
           </p>
         </div>
         <button

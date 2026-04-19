@@ -1,11 +1,13 @@
 import { Link, useLocation } from "react-router-dom";
 import { 
   LayoutDashboard, Briefcase, Bot, FileText,
-  Calendar, Settings, Scale, PenTool
+  Calendar, Settings, Scale, PenTool, LogOut
 } from "lucide-react";
+import { useAuth } from "../App";
 
 export default function Sidebar({ isOpen, setIsOpen }) {
   const location = useLocation();
+  const { lawyer, logout } = useAuth();
 
   const navItems = [
     { name: "Dashboard",    path: "/",          icon: LayoutDashboard },
@@ -65,21 +67,33 @@ export default function Sidebar({ isOpen, setIsOpen }) {
         <div style={{ 
           display: "flex", alignItems: "center", gap: "12px", 
           padding: "12px", borderRadius: "12px", background: "var(--bg-main)",
-          border: "1px solid var(--border-subtle)"
+          border: "1px solid var(--border-subtle)", marginBottom: "10px"
         }}>
           <div style={{ 
             width: "40px", height: "40px", borderRadius: "10px", 
-            background: "linear-gradient(135deg, #1E293B 0%, #0F172A 100%)", 
+            background: "linear-gradient(135deg, #1E3A8A 0%, #312E81 100%)", 
             color: "white", display: "flex", alignItems: "center", justifyContent: "center", 
-            fontWeight: "700", fontSize: "14px" 
+            fontWeight: "700", fontSize: "14px", flexShrink: 0
           }}>
-            JD
+            {lawyer?.name?.split(" ").map(n => n[0]).join("").slice(0,2).toUpperCase() || "JD"}
           </div>
-          <div style={{ display: "flex", flexDirection: "column", overflow: "hidden" }}>
-            <span style={{ fontSize: "14px", fontWeight: "700", color: "var(--text-main)", whiteSpace: "nowrap", textOverflow: "ellipsis" }}>John Doe</span>
-            <span style={{ fontSize: "11px", color: "var(--text-muted)", fontWeight: "500" }}>Senior Partner</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ fontSize: "13px", fontWeight: "700", color: "#0F172A", display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {lawyer?.name || "Lawyer"}
+            </span>
+            <span style={{ fontSize: "11px", color: "#64748B" }}>
+              {lawyer?.lawyer_id} · {lawyer?.specialization}
+            </span>
           </div>
         </div>
+        <button
+          onClick={logout}
+          style={{ display: "flex", alignItems: "center", gap: "8px", padding: "9px 14px", background: "#FEF2F2", border: "none", borderRadius: "8px", color: "#DC2626", fontSize: "13px", fontWeight: "600", cursor: "pointer", width: "100%", transition: "background 0.15s" }}
+          onMouseEnter={e => e.currentTarget.style.background = "#FEE2E2"}
+          onMouseLeave={e => e.currentTarget.style.background = "#FEF2F2"}
+        >
+          <LogOut size={14} /> Logout
+        </button>
       </div>
     </div>
   );

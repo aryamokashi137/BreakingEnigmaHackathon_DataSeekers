@@ -1,5 +1,7 @@
 import os
 import httpx
+import json
+import re
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -62,11 +64,9 @@ def summarize_text(chunks: list[dict]) -> str:
     if not chunks:
         return "No document content found to summarize. Please upload a document first."
 
-    # If small enough, summarize directly
     all_text = " ".join(c["text"] for c in chunks)
     words = all_text.split()
 
-    # If text is large, summarize in batches then combine
     BATCH_WORDS = 3000
     if len(words) > BATCH_WORDS:
         batch_summaries = []
@@ -93,7 +93,6 @@ Provide the final summary in this format:
 **Conclusion:** (if present, else write "Not specified")"""
         return _call_llm(final_prompt, max_tokens=1024)
 
-    # Small document — summarize directly
     prompt = f"""You are a legal assistant AI. Summarize the following legal document clearly and concisely.
 
 Document Content:
@@ -108,32 +107,89 @@ Provide the summary in this format:
     return _call_llm(prompt, max_tokens=1024)
 
 
-# ── LEGAL RESEARCH ─────────────────────────────────────────────────────────────
+# ── LEGAL RESEARCH (live web search + context-aware) ──────────────────────────
 
-def legal_research(query: str) -> str:
-    prompt = f"""You are an expert legal research assistant with deep knowledge of law, legal codes, constitutional articles, and statutes.
+def _web_search(query: str, max_results: int = 5) -> list[dict]:
+    """Search DuckDuckGo and return top results."""
+    try:
+        from duckduckgo_search import DDGS
+        results = []
+        with DDGS() as ddgs:
+            for r in ddgs.text(query, max_results=max_results):
+                results.append({
+                    "title":   r.get("title", ""),
+                    "snippet": r.get("body", ""),
+                    "url":     r.get("href", ""),
+                })
+        return results
+    except Exception as e:
+        return [{"title": "Search unavailable", "snippet": str(e), "url": ""}]
 
-A lawyer has asked the following legal research question:
-"{query}"
 
-Provide a clear, structured, and accurate answer based on your legal knowledge.
+def _build_search_query(user_query: str, case_context: str) -> str:
+    """Ask Claude to generate a precise legal search query."""
+    prompt = f"""You are a legal research assistant. Generate a precise web search query to find relevant Indian laws, IPC sections, articles, petitions, or case precedents.
+
+User Question: {user_query}
+
+Case Context (brief):
+{case_context[:500] if case_context else 'No case context provided.'}
+
+Generate ONE concise search query (max 10 words) optimized for finding Indian legal information.
+Return ONLY the search query. No explanation. No quotes."""
+    try:
+        return _call_llm(prompt, max_tokens=30).strip().strip('"').strip("'")
+    except Exception:
+        return user_query
+
+
+def legal_research(query: str, case_context: str = "") -> str:
+    # Step 1: Build precise search query using case context
+    search_query = _build_search_query(query, case_context)
+
+    # Step 2: Live web search
+    results = _web_search(f"{search_query} India law", max_results=5)
+
+    # Step 3: Format search results
+    search_text = ""
+    sources = []
+    for i, r in enumerate(results, 1):
+        if r["snippet"]:
+            search_text += f"[Source {i}] {r['title']}\n{r['snippet']}\n\n"
+        if r["url"]:
+            sources.append(f"{i}. {r['title']} — {r['url']}")
+
+    # Step 4: Claude synthesizes answer from live results + case context
+    prompt = f"""You are an expert Indian legal research assistant.
+
+A lawyer asked: "{query}"
+
+{f'Case Context:{chr(10)}{case_context[:800]}' if case_context else ''}
+
+Live web search results for "{search_query}":
+
+{search_text if search_text else 'No web results found. Use your legal knowledge.'}
+
+Based on the search results and your legal knowledge, provide a comprehensive answer.
 
 Format your response as:
-**Legal Provision:** (name/number of the law, article, or section)
+**Legal Provision:** (specific law, IPC section, article, or act name)
 **Explanation:** (clear explanation in simple language)
 **Key Points:** (bullet list of important aspects)
-**Practical Implications:** (how this applies in real legal scenarios)
+**Relevant to This Case:** (how this applies to the case context above, if provided)
+**Practical Implications:** (what the lawyer should do next)
 
-If the query is about a specific country's law, mention which jurisdiction it applies to.
-Be accurate, concise, and helpful."""
+Be accurate, cite specific section numbers, and focus on Indian law."""
 
-    return _call_llm(prompt, max_tokens=1024)
+    answer = _call_llm(prompt, max_tokens=1500)
+
+    if sources:
+        answer += "\n\n**Sources:**\n" + "\n".join(sources)
+
+    return answer
 
 
-# ── CASE LIFECYCLE + SMART AGENT ────────────────────────────────────────────────
-
-import json
-import re
+# ── CASE LIFECYCLE + SMART AGENT ──────────────────────────────────────────────
 
 def extract_lifecycle(text: str) -> dict:
     prompt = f"""You are a legal analyst AI. Analyze the following legal case documents and extract structured lifecycle information.
@@ -154,19 +210,14 @@ Extract and return ONLY a valid JSON object with this exact structure:
 Return ONLY the JSON. No explanation. No markdown."""
 
     raw = _call_llm(prompt, max_tokens=1024)
-    # Strip markdown code fences if present
     raw = re.sub(r"```(?:json)?\n?", "", raw).strip().rstrip("`")
     try:
         return json.loads(raw)
     except Exception:
         return {
-            "timeline": [],
-            "parties": [],
-            "case_type": "Unknown",
-            "current_stage": "Unknown",
-            "legal_issues": [],
-            "key_events": [],
-            "raw": raw,
+            "timeline": [], "parties": [],
+            "case_type": "Unknown", "current_stage": "Unknown",
+            "legal_issues": [], "key_events": [], "raw": raw,
         }
 
 
@@ -199,13 +250,7 @@ Be practical, realistic, and use legal reasoning. Return ONLY the JSON. No expla
     try:
         return json.loads(raw)
     except Exception:
-        return {
-            "strengths": [],
-            "risks": [],
-            "next_steps": [],
-            "strategy": [],
-            "raw": raw,
-        }
+        return {"strengths": [], "risks": [], "next_steps": [], "strategy": [], "raw": raw}
 
 
 # ── DOCUMENT DRAFTING ─────────────────────────────────────────────────────────
@@ -282,21 +327,25 @@ Return ONLY the JSON. No explanation. No markdown."""
         return []
 
 
-# ── AGENTIC INTENT CLASSIFIER ──────────────────────────────────────────────────
+# ── AGENTIC INTENT CLASSIFIER (improved) ──────────────────────────────────────
 
 def detect_intent(query: str) -> str:
     prompt = f"""You are the routing brain of an AI legal assistant.
 
 Classify the user query into EXACTLY one of these three categories:
-- document_qa   → question about an uploaded case document (parties, facts, arguments, evidence, dates)
-- summarize     → request to summarize or give an overview of a document
-- legal_research → question about a law, act, section, article, IPC, constitution, legal concept
+- document_qa    → asking about FACTS in uploaded documents (who are parties, what happened, evidence, dates in the case, arguments made)
+- summarize      → request to summarize, give overview, brief, or outline a document
+- legal_research → asking about laws, acts, IPC sections, articles, constitutional provisions, petitions, legal procedures, OR asking for laws/sections RELEVANT TO or APPLICABLE TO a case
 
-Rules:
-- If the query mentions "this document", "this case", "uploaded", "file" → document_qa
-- If the query asks to summarize, brief, overview, outline → summarize
-- If the query asks about a law, section, article, IPC, legal concept → legal_research
-- When in doubt between document_qa and legal_research → choose document_qa
+CRITICAL RULES (override everything else):
+- "laws relevant to this case" → legal_research (NOT document_qa)
+- "applicable sections for this case" → legal_research
+- "what laws apply here" → legal_research
+- "petitions related to this" → legal_research
+- "give me family/property/criminal laws" → legal_research
+- "search for laws" → legal_research
+- Only use document_qa when asking about FACTS that exist IN the document (names, dates, what was filed, what was argued)
+- summarize wins if the query contains: summarize, summary, overview, brief, outline, gist
 
 Respond with ONLY one word: document_qa, summarize, or legal_research
 
@@ -308,14 +357,16 @@ Category:"""
         result = _call_llm(prompt, max_tokens=10).strip().lower()
         if "summarize" in result:
             return "summarize"
-        if "legal_research" in result or "legal" in result or "research" in result:
+        if "legal_research" in result or "research" in result:
             return "legal_research"
         return "document_qa"
     except Exception:
-        # Fallback to keyword matching if LLM call fails
+        # Keyword fallback
         q = query.lower()
-        if any(k in q for k in ("summarize", "summary", "overview", "brief", "outline")):
+        if any(k in q for k in ("summarize", "summary", "overview", "brief", "outline", "gist")):
             return "summarize"
-        if any(k in q for k in ("article", "section", "ipc", "law", "act", "constitution", "clause")):
+        if any(k in q for k in ("law", "laws", "section", "article", "ipc", "act", "petition",
+                                 "constitution", "clause", "statute", "relevant law",
+                                 "applicable", "search", "find law")):
             return "legal_research"
         return "document_qa"

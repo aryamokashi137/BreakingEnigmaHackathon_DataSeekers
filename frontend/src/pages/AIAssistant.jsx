@@ -3,18 +3,21 @@ import { Send, RotateCcw, Trash, Scale, Brain, MessageSquare, Info, Shield, Zap,
 import { getChatHistory, sendMessage, clearChat } from "../api";
 import { intentMeta } from "../theme";
 import MarkdownRenderer from "../components/MarkdownRenderer";
+import { useAuth } from "../App";
 
 const Spinner = () => <Loader2 size={16} style={{ animation: "spin 1s linear infinite" }} />;
 
 export default function AIAssistant() {
+  const { lawyer } = useAuth();
+  const chatId = lawyer?.lawyer_id || "general";
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef(null);
 
   useEffect(() => {
-    getChatHistory("general").then((r) => setMessages(r.data)).catch(() => {});
-  }, []);
+    getChatHistory(chatId).then((r) => setMessages(r.data)).catch(() => {});
+  }, [chatId]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -27,7 +30,7 @@ export default function AIAssistant() {
     setMessages((p) => [...p, { role: "user", message: msg }]);
     setLoading(true);
     try {
-      const res = await sendMessage("general", msg);
+      const res = await sendMessage(chatId, msg);
       setMessages((p) => [...p, { role: "assistant", message: res.data.response, intent: res.data.intent }]);
     } finally {
       setLoading(false);
@@ -36,7 +39,7 @@ export default function AIAssistant() {
 
   const handleClear = async () => {
     if (!window.confirm("Clear chat history?")) return;
-    await clearChat("general");
+    await clearChat(chatId);
     setMessages([]);
   };
 
